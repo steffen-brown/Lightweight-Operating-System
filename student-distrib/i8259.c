@@ -30,17 +30,17 @@ void i8259_init(void) {
     outb(ICW1, SLAVE_8259_PORT);
 
     // Set the PICs vector offsets
-    outb(ICW2_MASTER, MASTER_8259_PORT);
-    outb(ICW2_SLAVE, SLAVE_8259_PORT);
+    outb(ICW2_MASTER, MASTER_8259_DATA_PORT);
+    outb(ICW2_SLAVE, SLAVE_8259_DATA_PORT);
 
     // Tell master PIC ther eis a slave at IRQ2
-    outb(ICW3_MASTER, MASTER_8259_PORT);
+    outb(ICW3_MASTER, MASTER_8259_DATA_PORT);
     // Tell the slave its in cascade mode
-    outb(ICW3_SLAVE, SLAVE_8259_PORT);
+    outb(ICW3_SLAVE, SLAVE_8259_DATA_PORT);
 
     // Enable 8086 mode on the PICs
-    outb(ICW4, MASTER_8259_PORT);
-    outb(ICW4, SLAVE_8259_PORT);
+    outb(ICW4, MASTER_8259_DATA_PORT);
+    outb(ICW4, SLAVE_8259_DATA_PORT);
 
     // Restore masks
     outb(cache1, MASTER_8259_DATA_PORT);
