@@ -53,33 +53,47 @@ void i8259_init(void) {
 /* Enable (unmask) the specified IRQ */
 void enable_irq(uint32_t irq_num) {
     uint8_t new_mask;
+    uint32_t flags;
+
+    // Disable interupts and save flags
+    cli_and_save(flags);
 
     // If IRQ is connected to the primary PIC (IRQ < 8)
     if(irq_num < 8) {
         // Create and output new primary PIC mask w/ new enable bit
         new_mask = inb(MASTER_8259_DATA_PORT) | (1 << irq_num);
         outb(new_mask, MASTER_8259_DATA_PORT);
-    } else { // If IRQ is connected to the secondary PIC (IRQ >= 8)
+    } else if(irq_num < 16) { // If IRQ is connected to the secondary PIC (IRQ >= 8)
         // Create and output new secondary PIC mask w/ new enable bit
         new_mask = inb(SLAVE_8259_DATA_PORT) | (1 << (irq_num - 8));
         outb(new_mask, SLAVE_8259_DATA_PORT);
     }
+
+    // Restore interupt flags
+    restore_flags(flags);
 }
 
 /* Disable (mask) the specified IRQ */
 void disable_irq(uint32_t irq_num) {
     uint8_t new_mask;
+    uint32_t flags;
+
+    // Disable interupts and save flags
+    cli_and_save(flags);
 
     // If IRQ is connected to the primary PIC (IRQ < 8)
     if(irq_num < 8) {
         // Create and output new primary PIC mask w/ new disabled bit
         new_mask = inb(MASTER_8259_DATA_PORT) & ~(1 << irq_num);
         outb(new_mask, MASTER_8259_DATA_PORT);
-    } else { // If IRQ is connected to the secondary PIC (IRQ >= 8)
+    } else if(irq_num < 16) { // If IRQ is connected to the secondary PIC (IRQ >= 8)
         // Create and output new secondary PIC mask w/ new disabled bit
         new_mask = inb(SLAVE_8259_DATA_PORT) & ~(1 << (irq_num - 8));
         outb(new_mask, SLAVE_8259_DATA_PORT);
     }
+
+    // Restore interupt flags
+    restore_flags(flags);
 }
 
 /* Send end-of-interrupt signal for the specified IRQ */
