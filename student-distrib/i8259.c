@@ -21,10 +21,6 @@ void i8259_init(void) {
     cache1 = inb(MASTER_8259_DATA_PORT);
     cache2 = inb(SLAVE_8259_DATA_PORT);
 
-    // Mask both of the PICs
-    outb(0xFF, MASTER_8259_DATA_PORT);
-    outb(0xFF, SLAVE_8259_DATA_PORT);
-
     // Start the intialization seqence (cascasde mode)
     outb(ICW1, MASTER_8259_PORT);
     outb(ICW1, SLAVE_8259_PORT);
@@ -100,11 +96,11 @@ void disable_irq(uint32_t irq_num) {
 void send_eoi(uint32_t irq_num) {
     if(irq_num >= 8) {
         // Send EOI to secondary PIC
-        outb(SLAVE_8259_PORT, EOI + (irq_num - 8));
+        outb(SLAVE_8259_PORT, EOI | (irq_num - 8));
         // Send general EOI to primary PIC
-        outb(MASTER_8259_PORT, EOI + 2);
+        outb(MASTER_8259_PORT, EOI | 2);
     } else {
         // Send EOI to primary PIC
-        outb(MASTER_8259_PORT, EOI + irq_num);
+        outb(MASTER_8259_PORT, EOI | irq_num);
     }
 }

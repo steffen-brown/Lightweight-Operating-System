@@ -6,17 +6,16 @@
 
 void exc_handler(int vector) {
     if(vector >= 0 && vector <= 0x13) {
-        printf("Error\n      ");
+        printf("Error %d      \n", vector);
+        while(1) {};
     }
     if(vector == 0x28) {
-        printf("RTC\n        ");
+        printf("RTC        \n");
         RTC_handler();
         send_eoi(8);
     }
     else if(vector == 0x21) {
-        printf("Keyboard\n       ");
-        volatile char temp = inb(0x60);
-        printf("%c\n           ", temp);
+        printf("Keyboard       \n");
         send_eoi(1);
     }
 
@@ -25,10 +24,10 @@ void exc_handler(int vector) {
 
 void set_IDT_entry_metadata(idt_desc_t* entry, int type) {
     entry->seg_selector = KERNEL_CS;
-    entry->reserved3 = (type >> 3) & 1;
-    entry->reserved2 = (type >> 2) & 1;
-    entry->reserved1 = (type >> 1) & 1;
-    entry->size = type & 1;
+    entry->reserved3 = type & 1;
+    entry->reserved2 = (type >> 1) & 1;
+    entry->reserved1 = (type >> 2) & 1;
+    entry->size = (type >> 3) & 1;
     entry->reserved0 = 0;
     entry->dpl = 0;
     entry->present = 1;

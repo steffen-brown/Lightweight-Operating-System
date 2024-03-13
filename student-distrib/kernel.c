@@ -153,8 +153,8 @@ void entry(unsigned long magic, unsigned long addr) {
     // // Keyboard init call GOES HERE
     enable_irq(1); // Enable keyboard interupts on PIC
 
-    // RTC_init(); // Init the RTC to send interupts
-    // enable_irq(8); // Enable RTC interupts on PIC
+    RTC_init(); // Init the RTC to send interupts
+    enable_irq(8); // Enable RTC interupts on PIC
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
