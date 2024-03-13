@@ -141,20 +141,20 @@ void entry(unsigned long magic, unsigned long addr) {
     // Sets up IDT
     setup_IDT();
 
-    // Mask both of the PICs
     outb(0xFF, MASTER_8259_DATA_PORT);
     outb(0xFF, SLAVE_8259_DATA_PORT);
 
     /* Init the PIC */
     i8259_init();
+    // Mask both of the PICs
     // Enable the slave PIC interupt port on the master PIC
     enable_irq(2);
 
     // // Keyboard init call GOES HERE
     enable_irq(1); // Enable keyboard interupts on PIC
 
-    RTC_init(); // Init the RTC to send interupts
-    enable_irq(8); // Enable RTC interupts on PIC
+    // RTC_init(); // Init the RTC to send interupts
+    // enable_irq(8); // Enable RTC interupts on PIC
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */

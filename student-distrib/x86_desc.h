@@ -216,14 +216,14 @@ do {                                    \
 
 #endif /* ASM */
 
-#define INT_LINKAGE(function_name, handler, vector) \
+#define INT_LINKAGE(function_name, handler, vector, has_error_code) \
     .global function_name ;\
     function_name: ;\
         pushal ;\
         pushfl ;\
         pushl $vector ;\
         call handler ;\
-        addl $4, %esp ;\
+        addl $(4 + has_error_code), %esp  ;\
         popfl ;\
         popal ;\
         iret ;\
