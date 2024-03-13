@@ -96,11 +96,11 @@ void disable_irq(uint32_t irq_num) {
 void send_eoi(uint32_t irq_num) {
     if(irq_num >= 8) {
         // Send EOI to secondary PIC
-        outb(SLAVE_8259_PORT, EOI | (irq_num - 8));
+        outb(EOI | (irq_num - 8), SLAVE_8259_PORT);
         // Send general EOI to primary PIC
-        outb(MASTER_8259_PORT, EOI | 2);
+        outb(EOI | 2, MASTER_8259_PORT);
     } else {
         // Send EOI to primary PIC
-        outb(MASTER_8259_PORT, EOI | irq_num);
+        outb(EOI | irq_num, MASTER_8259_PORT);
     }
 }

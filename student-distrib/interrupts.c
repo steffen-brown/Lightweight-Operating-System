@@ -3,6 +3,7 @@
 #include "lib.h"
 #include "i8259.h"
 #include "RTC.h"
+#include "keyboard.h"
 
 void exc_handler(int vector) {
     if(vector >= 0 && vector <= 0x13) {
@@ -12,14 +13,11 @@ void exc_handler(int vector) {
     if(vector == 0x28) {
         printf("RTC        \n");
         RTC_handler();
-        send_eoi(8);
     }
     else if(vector == 0x21) {
-        printf("Keyboard       \n");
-        send_eoi(1);
+        keyboard_handler();
     }
 
-    printf("Vector %d          \n", vector);
 }
 
 void set_IDT_entry_metadata(idt_desc_t* entry, int type) {

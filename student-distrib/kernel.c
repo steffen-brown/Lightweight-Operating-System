@@ -10,6 +10,7 @@
 #include "debug.h"
 #include "tests.h"
 #include "interrupts.h"
+#include "keyboard.h"
 
 #define RUN_TESTS
 
@@ -150,11 +151,10 @@ void entry(unsigned long magic, unsigned long addr) {
     // Enable the slave PIC interupt port on the master PIC
     enable_irq(2);
 
-    // // Keyboard init call GOES HERE
-    enable_irq(1); // Enable keyboard interupts on PIC
+    keyboard_init();
 
-    RTC_init(); // Init the RTC to send interupts
-    enable_irq(8); // Enable RTC interupts on PIC
+    // RTC_init(); // Init the RTC to send interupts
+    // enable_irq(8); // Enable RTC interupts on PIC
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
