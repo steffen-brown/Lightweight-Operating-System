@@ -11,11 +11,12 @@ void exc_handler(int vector) {
         while(1) {};
     }
     if(vector == 0x28) {
-        printf("RTC        \n");
         RTC_handler();
     }
     else if(vector == 0x21) {
         keyboard_handler();
+    } else if (vector == 0x80) {
+        printf("Sys call");
     }
 
 }
@@ -37,7 +38,7 @@ void setup_IDT() {
     idt_desc_t entry;
 
     SET_IDT_ENTRY(entry, division_error_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x0] = entry;
 
     SET_IDT_ENTRY(entry, debug_linkage);
@@ -45,7 +46,7 @@ void setup_IDT() {
     idt[0x1] = entry;
     
     SET_IDT_ENTRY(entry, NMI_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x2] = entry;
     
     SET_IDT_ENTRY(entry, breakpoint_linkage);
@@ -57,58 +58,58 @@ void setup_IDT() {
     idt[0x4] = entry;
     
     SET_IDT_ENTRY(entry, bound_range_interrupt_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x5] = entry;
     
     SET_IDT_ENTRY(entry, invalid_opcode_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x6] = entry;
     
     SET_IDT_ENTRY(entry, device_not_avalible_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x7] = entry;
     
     SET_IDT_ENTRY(entry, double_fault_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x8] = entry;
     
     SET_IDT_ENTRY(entry, invalid_tss_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0xA] = entry;
     
     SET_IDT_ENTRY(entry, segment_not_present_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0xB] = entry;
     
     SET_IDT_ENTRY(entry, stack_segfault_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0xC] = entry;
     
     SET_IDT_ENTRY(entry, general_protection_fault_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0xD] = entry;
     
     SET_IDT_ENTRY(entry, page_fault_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0xE] = entry;
     
     SET_IDT_ENTRY(entry, x87_floating_point_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x10] = entry;
     
     
     SET_IDT_ENTRY(entry, alignment_check_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x11] = entry;
     
     
     SET_IDT_ENTRY(entry, machine_check_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x12] = entry;
     
     
     SET_IDT_ENTRY(entry, SIMD_floating_point_linkage);
-    set_IDT_entry_metadata(&entry, interrupt);
+    set_IDT_entry_metadata(&entry, trap);
     idt[0x13] = entry;
     
 
@@ -119,8 +120,10 @@ void setup_IDT() {
     SET_IDT_ENTRY(entry, RTC_linkage);
     set_IDT_entry_metadata(&entry, interrupt);
     idt[0x28] = entry;
-    
-    
+
+    SET_IDT_ENTRY(entry, system_call_linkage);
+    set_IDT_entry_metadata(&entry, interrupt);
+    idt[0x80] = entry;
 }
 
 

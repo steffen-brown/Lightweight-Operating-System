@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "interrupts.h": "c",
+        "keyboard.h": "c",
+        "i8259.h": "c"
+    }
+}

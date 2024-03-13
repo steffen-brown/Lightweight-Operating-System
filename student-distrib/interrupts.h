@@ -26,6 +26,8 @@ extern void alignment_check_linkage();
 extern void machine_check_linkage();
 extern void SIMD_floating_point_linkage();
 
+extern void system_call_linkage();
+
 extern void setup_IDT();
 
 #endif

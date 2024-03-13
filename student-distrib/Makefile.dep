@@ -7,5 +7,5 @@ kernel.o: kernel.c multiboot.h types.h x86_desc.h lib.h i8259.h RTC.h \
   debug.h tests.h interrupts.h keyboard.h
 keyboard.o: keyboard.c keyboard.h types.h i8259.h lib.h
 lib.o: lib.c lib.h types.h
-RTC.o: RTC.c RTC.h lib.h types.h
+RTC.o: RTC.c RTC.h lib.h types.h i8259.h
 tests.o: tests.c tests.h x86_desc.h types.h lib.h

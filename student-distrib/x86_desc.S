@@ -133,6 +133,7 @@ idt_bottom:
 .global alignment_check_linkage
 .global machine_check_linkage
 .global SIMD_floating_point_linkage
+.global system_call_linkage
 
 INT_LINKAGE(RTC_linkage, exc_handler, 0x28, 0)
 INT_LINKAGE(keyboard_linkage, exc_handler, 0x21, 0)
@@ -156,4 +157,6 @@ INT_LINKAGE(x87_floating_point_linkage, exc_handler, 0x10, 0)
 INT_LINKAGE(alignment_check_linkage, exc_handler, 0x11, 4)
 INT_LINKAGE(machine_check_linkage, exc_handler, 0x12, 4)
 INT_LINKAGE(SIMD_floating_point_linkage, exc_handler, 0x13, 4)
+
+INT_LINKAGE(system_call_linkage, exc_handler, 0x80, 0)
 

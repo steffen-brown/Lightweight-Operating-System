@@ -151,11 +151,9 @@ void entry(unsigned long magic, unsigned long addr) {
     // Enable the slave PIC interupt port on the master PIC
     enable_irq(2);
 
-    keyboard_init();
+    // keyboard_init();
 
-    // RTC_init(); // Init the RTC to send interupts
-    // enable_irq(8); // Enable RTC interupts on PIC
-
+    RTC_init(); // Init the RTC to send interupt
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
 
@@ -166,6 +164,8 @@ void entry(unsigned long magic, unsigned long addr) {
      * without showing you any output */
     printf("Enabling Interrupts\n");
     sti();
+
+    asm volatile ("int $0x80");
 
 #ifdef RUN_TESTS
     /* Run tests */

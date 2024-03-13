@@ -1,5 +1,6 @@
 #include "RTC.h"
 #include "lib.h"
+#include "i8259.h"
 
 void RTC_init() {
     /*
@@ -16,13 +17,16 @@ void RTC_init() {
 	     `----------- 1=disable clock update, 0=update count normally
     */
 
-    outb(0x70, 0x8B); // select register B
+    outb(0x8B, 0x70); // select register B
     char prev=inb(0x71); // read the current value of register B
-    outb(0x70, 0x8B); // select register B
-    outb(0x71, prev | 0x40); // Turns on bit 6 of register B
+    outb(0x8B, 0x70); // select register B
+    outb(prev | 0x40, 0x71); // Turns on bit 6 of register B
 
+	enable_irq(8);
 }
 
 void RTC_handler() {
-    test_interrupts();
+    //test_interrupts();
+	printf("RTC        \n");
+	send_eoi(1);
 }
