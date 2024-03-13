@@ -112,9 +112,48 @@ _idt:
 idt_bottom:
 
 .extern exc_handler
+
 .global RTC_linkage
 .global keyboard_linkage
+.global division_error_linkage
+.global debug_linkage
+.global NMI_linkage
+.global breakpoint_linkage
+.global overflow_linkage
+.global bound_range_interrupt_linkage
+.global invalid_opcode_linkage
+.global device_not_avalible_linkage
+.global double_fault_linkage
+.global invalid_tss_linkage
+.global segment_not_present_linkage
+.global stack_segfault_linkage
+.global general_protection_fault_linkage
+.global page_fault_linkage
+.global x87_floating_point_linkage
+.global alignment_check_linkage
+.global machine_check_linkage
+.global SIMD_floating_point_linkage
 
 INT_LINKAGE(RTC_linkage, exc_handler, 0x28)
 INT_LINKAGE(keyboard_linkage, exc_handler, 0x21)
+
+INT_LINKAGE(division_error_linkage, exc_handler, 0x0)
+INT_LINKAGE(debug_linkage, exc_handler, 0x1)
+INT_LINKAGE(NMI_linkage, exc_handler, 0x2)
+INT_LINKAGE(breakpoint_linkage, exc_handler, 0x3)
+INT_LINKAGE(overflow_linkage, exc_handler, 0x4)
+INT_LINKAGE(bound_range_interrupt_linkage, exc_handler, 0x5)
+INT_LINKAGE(invalid_opcode_linkage, exc_handler, 0x6)
+INT_LINKAGE(device_not_avalible_linkage, exc_handler, 0x7)
+INT_LINKAGE(double_fault_linkage, exc_handler, 0x8)
+INT_LINKAGE(invalid_tss_linkage, exc_handler, 0xA)
+INT_LINKAGE(segment_not_present_linkage, exc_handler, 0xB)
+INT_LINKAGE(stack_segfault_linkage, exc_handler, 0xC)
+
+INT_LINKAGE(general_protection_fault_linkage, exc_handler, 0xD)
+INT_LINKAGE(page_fault_linkage, exc_handler, 0xE)
+INT_LINKAGE(x87_floating_point_linkage, exc_handler, 0x10)
+INT_LINKAGE(alignment_check_linkage, exc_handler, 0x11)
+INT_LINKAGE(machine_check_linkage, exc_handler, 0x12)
+INT_LINKAGE(SIMD_floating_point_linkage, exc_handler, 0x13)
 
