@@ -223,9 +223,10 @@ do {                                    \
         pushfl ;\
         pushl $vector ;\
         call handler ;\
-        addl $(4 + has_error_code), %esp  ;\
+        addl $4, %esp  ;\
         popfl ;\
         popal ;\
+        addl has_error_code, %esp  ;\
         iret ;\
 
 #endif /* _x86_DESC_H */
