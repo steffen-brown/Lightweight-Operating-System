@@ -18,7 +18,7 @@ void exc_handler(int vector) {
    
 }
 
-void set_IDT_entry_metadata(idt_desc_t* entry) {
+void set_IDT_int_entry_metadata(idt_desc_t* entry) {
     entry->seg_selector = KERNEL_CS;
     entry->reserved3 = 0;
     entry->reserved2 = 1;
@@ -33,11 +33,11 @@ void setup_IDT() {
     idt_desc_t entry;
 
     SET_IDT_ENTRY(entry, RTC_linkage);
-    set_IDT_entry_metadata(&entry);
+    set_IDT_int_entry_metadata(&entry);
     idt[0x28] = entry;
     
     SET_IDT_ENTRY(entry, keyboard_linkage);
-    set_IDT_entry_metadata(&entry);
+    set_IDT_int_entry_metadata(&entry);
     idt[0x21] = entry;
 }
 
