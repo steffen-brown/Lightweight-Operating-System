@@ -6,8 +6,10 @@
 #include "x86_desc.h"
 #include "lib.h"
 #include "i8259.h"
+#include "RTC.h"
 #include "debug.h"
 #include "tests.h"
+#include "interrupts.h"
 
 #define RUN_TESTS
 
@@ -136,18 +138,34 @@ void entry(unsigned long magic, unsigned long addr) {
         ltr(KERNEL_TSS);
     }
 
+    // Sets up IDT
+    setup_IDT();
+
+    // Mask both of the PICs
+    outb(0xFF, MASTER_8259_DATA_PORT);
+    outb(0xFF, SLAVE_8259_DATA_PORT);
+
     /* Init the PIC */
     i8259_init();
+    // Enable the slave PIC interupt port on the master PIC
+    enable_irq(2);
+
+    // // Keyboard init call GOES HERE
+    enable_irq(1); // Enable keyboard interupts on PIC
+
+    RTC_init(); // Init the RTC to send interupts
+    enable_irq(8); // Enable RTC interupts on PIC
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
 
+    
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
      * IDT correctly otherwise QEMU will triple fault and simple close
      * without showing you any output */
-    /*printf("Enabling Interrupts\n");
-    sti();*/
+    printf("Enabling Interrupts\n");
+    sti();
 
 #ifdef RUN_TESTS
     /* Run tests */

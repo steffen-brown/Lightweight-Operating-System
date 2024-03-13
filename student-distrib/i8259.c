@@ -61,11 +61,11 @@ void enable_irq(uint32_t irq_num) {
     // If IRQ is connected to the primary PIC (IRQ < 8)
     if(irq_num < 8) {
         // Create and output new primary PIC mask w/ new enable bit
-        new_mask = inb(MASTER_8259_DATA_PORT) | (1 << irq_num);
+        new_mask = inb(MASTER_8259_DATA_PORT) & ~(1 << irq_num);
         outb(new_mask, MASTER_8259_DATA_PORT);
     } else if(irq_num < 16) { // If IRQ is connected to the secondary PIC (IRQ >= 8)
         // Create and output new secondary PIC mask w/ new enable bit
-        new_mask = inb(SLAVE_8259_DATA_PORT) | (1 << (irq_num - 8));
+        new_mask = inb(SLAVE_8259_DATA_PORT) & ~(1 << (irq_num - 8));
         outb(new_mask, SLAVE_8259_DATA_PORT);
     }
 
@@ -84,11 +84,11 @@ void disable_irq(uint32_t irq_num) {
     // If IRQ is connected to the primary PIC (IRQ < 8)
     if(irq_num < 8) {
         // Create and output new primary PIC mask w/ new disabled bit
-        new_mask = inb(MASTER_8259_DATA_PORT) & ~(1 << irq_num);
+        new_mask = inb(MASTER_8259_DATA_PORT) | (1 << irq_num);
         outb(new_mask, MASTER_8259_DATA_PORT);
     } else if(irq_num < 16) { // If IRQ is connected to the secondary PIC (IRQ >= 8)
         // Create and output new secondary PIC mask w/ new disabled bit
-        new_mask = inb(SLAVE_8259_DATA_PORT) & ~(1 << (irq_num - 8));
+        new_mask = inb(SLAVE_8259_DATA_PORT) | (1 << (irq_num - 8));
         outb(new_mask, SLAVE_8259_DATA_PORT);
     }
 
@@ -98,11 +98,13 @@ void disable_irq(uint32_t irq_num) {
 
 /* Send end-of-interrupt signal for the specified IRQ */
 void send_eoi(uint32_t irq_num) {
-    // If IRQ is connected to the secondary PIC (IRQ >= 8)
     if(irq_num >= 8) {
         // Send EOI to secondary PIC
-        outb(SLAVE_8259_PORT, EOI);
+        outb(SLAVE_8259_PORT, EOI + (irq_num - 8));
+        // Send general EOI to primary PIC
+        outb(MASTER_8259_PORT, EOI + 2);
+    } else {
+        // Send EOI to primary PIC
+        outb(MASTER_8259_PORT, EOI + irq_num);
     }
-    // Send EOI to primary PIC
-    outb(MASTER_8259_PORT, EOI);
 }

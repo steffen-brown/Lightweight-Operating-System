@@ -84,6 +84,10 @@ ldt_desc_ptr:
 
 gdt_bottom:
 
+gdt_desc:
+    .word gdt_bottom - gdt - 1
+    .long gdt
+
     .align 16
 ldt:
     .rept 4
@@ -107,6 +111,10 @@ _idt:
 
 idt_bottom:
 
-gdt_desc:
-    .word gdt_bottom - gdt - 1
-    .long gdt
+.extern exc_handler
+.global RTC_linkage
+.global keyboard_linkage
+
+INT_LINKAGE(RTC_linkage, exc_handler, 0x28)
+INT_LINKAGE(keyboard_linkage, exc_handler, 0x21)
+
