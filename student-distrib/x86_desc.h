@@ -22,6 +22,8 @@
 /* Number of vectors in the interrupt descriptor table (IDT) */
 #define NUM_VEC     256
 
+#define NUM_DIR_ETRY 1024
+
 #ifndef ASM
 
 /* This structure is used to load descriptor base registers
@@ -166,6 +168,63 @@ typedef union idt_desc_t {
 extern idt_desc_t idt[NUM_VEC];
 /* The descriptor used to load the IDTR */
 extern x86_desc_t idt_desc_ptr;
+
+typedef union pdt_entry_table_t {
+    uint32_t val;
+    struct {
+        uint32_t p : 1;
+        uint32_t rw : 1;
+        uint32_t us : 1;
+        uint32_t pwt : 1;
+        uint32_t pcd : 1;
+        uint32_t a : 1;
+        uint32_t avl_6 : 1;
+        uint32_t ps : 1;
+        uint32_t avl_8_11 : 4;
+        uint32_t address : 20;
+    } __attribute__ ((packed));
+} pdt_entry_table_t;
+
+typedef union pdt_entry_page_t {
+    uint32_t val;
+    struct {
+        uint32_t p : 1;
+        uint32_t rw : 1;
+        uint32_t us : 1;
+        uint32_t pwt : 1;
+        uint32_t pcd : 1;
+        uint32_t a : 1;
+        uint32_t d : 1;
+        uint32_t ps : 1;
+        uint32_t g : 1;
+        uint32_t avl : 3;
+        uint32_t pat : 1;
+        uint32_t address_13_20 : 8;
+        uint32_t reserved : 1;
+        uint32_t address_22_31 : 10;
+    } __attribute__ ((packed));
+} pdt_entry_page_t;
+
+typedef union pt_entry_t {
+    uint32_t val;
+    struct {
+        uint32_t p : 1;
+        uint32_t rw : 1;
+        uint32_t us : 1;
+        uint32_t pwt : 1;
+        uint32_t pcd : 1;
+        uint32_t a : 1;
+        uint32_t d : 1;
+        uint32_t pat : 1;
+        uint32_t g : 1;
+        uint32_t avl : 3;
+        uint32_t address_31_12 : 20;
+    } __attribute__ ((packed));
+} pt_entry_t;
+
+extern uint32_t pdt[NUM_DIR_ETRY] __attribute__((aligned(4096)));
+extern uint32_t pt0[NUM_DIR_ETRY] __attribute__((aligned(4096)));
+
 
 /* Sets runtime parameters for an IDT entry */
 #define SET_IDT_ENTRY(str, handler)                              \

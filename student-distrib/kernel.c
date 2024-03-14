@@ -11,8 +11,11 @@
 #include "tests.h"
 #include "interrupts.h"
 #include "keyboard.h"
+#include "paging.h"
 
 #define RUN_TESTS
+
+
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -21,7 +24,6 @@
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
 void entry(unsigned long magic, unsigned long addr) {
-
     multiboot_info_t *mbi;
 
     /* Clear the screen. */
@@ -138,6 +140,9 @@ void entry(unsigned long magic, unsigned long addr) {
         tss.esp0 = 0x800000;
         ltr(KERNEL_TSS);
     }
+
+    setup_kernel_paging();
+    enable_paging();
 
     // Sets up IDT
     setup_IDT();

@@ -27,7 +27,7 @@ void RTC_init() {
 
 void RTC_handler() {
 	cli();
-	test_interrupts();
+	//test_interrupts();
 	outb(0x0C, 0x70);
 	inb(0x71);
 	send_eoi(8);

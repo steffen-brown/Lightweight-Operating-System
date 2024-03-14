@@ -11,6 +11,8 @@
 .globl tss, tss_desc_ptr, ldt, ldt_desc_ptr
 .globl gdt_ptr
 .globl idt_desc_ptr, idt
+.global pdt, pt0
+.globl load_page_directory, enable_paging_bit
 
 .align 4
 
@@ -160,3 +162,39 @@ INT_LINKAGE(SIMD_floating_point_linkage, exc_handler, 0x13, 4)
 
 INT_LINKAGE(system_call_linkage, exc_handler, 0x80, 0)
 
+
+.align 4096
+pdt:
+_pdt:
+    .rept NUM_DIR_ETRY
+    .long 0
+    .endr
+
+pdt_bottom:
+
+.align 4096
+pt0:
+_pt0:
+    .rept NUM_DIR_ETRY
+    .long 0
+    .endr
+pt0_bottom:
+
+load_page_directory:
+    push %ebp
+    mov %esp, %ebp
+    mov 8(%esp), %eax
+    mov %eax, %cr3
+    mov %ebp, %esp
+    pop %ebp
+    ret
+
+enable_paging_bit:
+    push %ebp
+    mov %esp, %ebp
+    mov %cr0, %eax
+    or $0x80000000, %eax
+    mov %eax, %cr0
+    mov %ebp, %esp
+    pop %ebp
+    ret

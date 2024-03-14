@@ -88,6 +88,5 @@ void send_eoi(uint32_t irq_num) {
         outb(EOI + irq_num, MASTER_8259_PORT);
     }
 
-    enable_irq(2);
 }
 

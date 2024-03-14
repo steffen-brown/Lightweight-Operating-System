@@ -2,6 +2,9 @@
     "files.associations": {
         "interrupts.h": "c",
         "keyboard.h": "c",
-        "i8259.h": "c"
+        "i8259.h": "c",
+        "lib.h": "c",
+        "types.h": "c",
+        "ios": "c"
     }
 }
