@@ -24,7 +24,7 @@ void setup_kernel_paging() {
 
     first_mb.p = 1;
     first_mb.rw = 1;
-    first_mb.us = 1;
+    first_mb.us = 0;
     first_mb.pwt = 0;
     first_mb.pcd = 0;
     first_mb.a = 0;
@@ -37,7 +37,7 @@ void setup_kernel_paging() {
 
     video_memory_page.p = 1;
     video_memory_page.rw = 1;
-    video_memory_page.us = 1;
+    video_memory_page.us = 0;
     video_memory_page.pwt = 0;
     video_memory_page.pcd = 0;
     video_memory_page.a = 0;
