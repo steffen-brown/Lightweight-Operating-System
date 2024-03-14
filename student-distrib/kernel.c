@@ -151,7 +151,7 @@ void entry(unsigned long magic, unsigned long addr) {
     // Enable the slave PIC interupt port on the master PIC
     enable_irq(2);
 
-    // keyboard_init();
+    keyboard_init();
 
     RTC_init(); // Init the RTC to send interupt
     /* Initialize devices, memory, filesystem, enable device interrupts on the

@@ -72,11 +72,12 @@ void keyboard_handler(void) {
     uint8_t scan_code = inb(0x60) & 0xFF; // data port
     if (scan_code < SCAN_CODES) {
         keyboard_buffer[keyboard_index] = scan_codes_table[scan_code];
-        putc(keyboard_buffer[keyboard_index]);
+        if(keyboard_buffer[keyboard_index] != ' ') {
+            putc(keyboard_buffer[keyboard_index]);
+        }
         keyboard_index++;
     }
 
     send_eoi(1); // keyboard irq
-    enable_irq(1);
 
 }

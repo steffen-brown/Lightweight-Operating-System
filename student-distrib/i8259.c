@@ -92,22 +92,17 @@ void disable_irq(uint32_t irq_num) {
 
 /* Send end-of-interrupt signal for the specified IRQ */
 void send_eoi(uint32_t irq_num) {
-    uint8_t irqmask = 1 << irq_num;
     uint32_t flags;
 
     // Disable interupts and save flags
     cli_and_save(flags);
 
     if(irq_num & 8) {
-        slave_mask |= irqmask;
         inb(SLAVE_8259_DATA_PORT);
-        outb(slave_mask, SLAVE_8259_DATA_PORT);
         outb(EOI + (irq_num & 7), SLAVE_8259_PORT);
         outb(EOI + 2, MASTER_8259_PORT);
     } else {
-        master_mask |= irqmask;
         inb(MASTER_8259_DATA_PORT);
-        outb(master_mask, MASTER_8259_DATA_PORT);
         outb(EOI + irq_num, MASTER_8259_PORT);
     }
 
