@@ -149,7 +149,6 @@ void entry(unsigned long magic, unsigned long addr) {
     i8259_init();
     // Mask both of the PICs
     // Enable the slave PIC interupt port on the master PIC
-    enable_irq(2);
 
     keyboard_init();
 

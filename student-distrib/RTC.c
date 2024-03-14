@@ -26,7 +26,10 @@ void RTC_init() {
 }
 
 void RTC_handler() {
-    //test_interrupts();
-	printf("RTC        \n");
-	send_eoi(1);
+	cli();
+	test_interrupts();
+	outb(0x0C, 0x70);
+	inb(0x71);
+	send_eoi(8);
+	sti();
 }
