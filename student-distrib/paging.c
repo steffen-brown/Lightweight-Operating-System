@@ -19,7 +19,6 @@ void setup_kernel_paging() {
     kernal_page.address_22_31 = 1;
 
     pdt[1] = kernal_page.val;
-    printf("%x           \n", pdt[1]);
 
     pdt_entry_table_t first_mb;
 
@@ -30,10 +29,9 @@ void setup_kernel_paging() {
     first_mb.pcd = 0;
     first_mb.a = 0;
     first_mb.ps = 0;
-    first_mb.address = 0xB8;
+    first_mb.address = (uint32_t)pt0 >> 12;
 
     pdt[0] = first_mb.val;
-    printf("%x           \n", pdt[0]);
 
     pt_entry_t video_memory_page;
 
@@ -49,10 +47,9 @@ void setup_kernel_paging() {
     video_memory_page.address_31_12 = 0xB8;
 
     pt0[0xB8] = video_memory_page.val;
-    printf("%x           \n", pt0[0xB8]);
 }
 
 void enable_paging() {
     load_page_directory(pdt);
-    enable_paging();
+    enable_paging_bit();
 }
