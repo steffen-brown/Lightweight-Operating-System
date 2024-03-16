@@ -1,5 +1,7 @@
 #include "keyboard.h"
+#define keyboard_port 0x60
 
+// Directory of letters assocated with each scan code
 char scan_codes_table[SCAN_CODES] = {
     NULL, NULL, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', NULL,      
     NULL, 'q', 'w', 'e', 'r', 't', 'y', 'u',  'i', 'o', 'p', '[', ']', NULL,
@@ -32,15 +34,16 @@ void keyboard_init(void) {
  *   SIDE EFFECTS: Prints input to screen
  */
 void keyboard_handler(void) {
-    uint8_t scan_code = inb(0x60) & 0xFF; // take in first 8 bits of keyboard input
+    uint8_t scan_code = inb(keyboard_port) & 0xFF; // take in first 8 bits of keyboard input
 
+    // Filter out invalid or otherwise unhandled scancodes
     if (scan_code < SCAN_CODES) {
         keyboard_buffer[keyboard_index] = scan_codes_table[scan_code]; // get matching character for scan_code
         if(keyboard_buffer[keyboard_index]) {
             putc(keyboard_buffer[keyboard_index]); // print to screen
         }
-        keyboard_index++;
+        keyboard_index++; // Advance the keyboard buffer index
     }
 
-    send_eoi(1); // keyboard irq
+    send_eoi(1); // Send EOI for keyboard to the PIC
 }

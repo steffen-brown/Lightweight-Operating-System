@@ -141,39 +141,32 @@ void entry(unsigned long magic, unsigned long addr) {
         ltr(KERNEL_TSS);
     }
 
-    setup_kernel_paging();
-    enable_paging();
+    setup_kernel_paging(); // Map the kernal and video memory to pages
+    enable_paging(); // Enable paging on the OS
 
     // Sets up IDT
     setup_IDT();
 
+    // Disable all PIC irq ports as default
     outb(0xFF, MASTER_8259_DATA_PORT);
     outb(0xFF, SLAVE_8259_DATA_PORT);
 
     /* Init the PIC */
     i8259_init();
-    // Mask both of the PICs
-    // Enable the slave PIC interupt port on the master PIC
 
+    /* Initialize and enable to keyboard*/
     keyboard_init();
 
-    RTC_init(); // Init the RTC to send interupt
-    /* Initialize devices, memory, filesystem, enable device interrupts on the
-     * PIC, any other initialization stuff... */
+    RTC_init(); // Initalize and enable the RTC
 
     
     /* Enable interrupts */
-    /* Do not enable the following until after you have set up your
-     * IDT correctly otherwise QEMU will triple fault and simple close
-     * without showing you any output */
     printf("Enabling Interrupts\n");
     sti();
 
-    asm volatile ("int $0x80");
-
 #ifdef RUN_TESTS
     /* Run tests */
-    //launch_tests();
+    launch_tests();
 #endif
     /* Execute the first program ("shell") ... */
 

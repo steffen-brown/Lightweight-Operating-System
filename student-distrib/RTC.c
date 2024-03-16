@@ -2,34 +2,48 @@
 #include "lib.h"
 #include "i8259.h"
 
+#define RTC_cmd 0x70
+#define RTC_data 0x71
+
+/*
+ * RTC_init
+ *   DESCRIPTION: Initializes the Real-Time Clock (RTC) by enabling RTC interrupts. This function
+ *                modifies the RTC's register B to turn on bit 6, which enables periodic interrupts
+ *                from the RTC. It then enables the RTC interrupt line (IRQ 8) on the Programmable
+ *                Interrupt Controller (PIC).
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Modifies the state of register B in the RTC. Enables RTC interrupts on the PIC.
+ */
 void RTC_init() {
-    /*
-    RTC Status register B:
 
-	    |7|6|5|4|3|2|1|0|  RTC Status Register B
-	     | | | | | | | `---- 1=enable daylight savings, 0=disable (default)
-	     | | | | | | `----- 1=24 hour mode, 0=12 hour mode (24 default)
-	     | | | | | `------ 1=time/date in binary, 0=BCD (BCD default)
-	     | | | | `------- 1=enable square wave frequency, 0=disable
-	     | | | `-------- 1=enable update ended interrupt, 0=disable
-	     | | `--------- 1=enable alarm interrupt, 0=disable
-	     | `---------- 1=enable periodic interrupt, 0=disable
-	     `----------- 1=disable clock update, 0=update count normally
-    */
+    outb(0x8B, RTC_cmd); // select register B (0x8B)
+    char prev=inb(RTC_data); // read the current value of register B
+    outb(0x8B, RTC_cmd); // select register B (0x8B)
+    outb(prev | 0x40, RTC_data); // Turns on bit 6 of register B (Enabling interrupts)
 
-    outb(0x8B, 0x70); // select register B
-    char prev=inb(0x71); // read the current value of register B
-    outb(0x8B, 0x70); // select register B
-    outb(prev | 0x40, 0x71); // Turns on bit 6 of register B
-
-	enable_irq(8);
+	enable_irq(8); // Enable RTC on the PIC
 }
 
+/*
+ * RTC_handler
+ *   DESCRIPTION: The interrupt handler for the Real-Time Clock (RTC). It disables interrupts
+ *                temporarily, triggers a screen flash (or any defined test_interrupts behavior),
+ *                and then acknowledges the RTC interrupt to allow further interrupts. Finally,
+ *                it re-enables interrupts.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Disables and then re-enables interrupts. Acknowledges the RTC interrupt to
+ *                 clear the interrupt request and allow for future RTC interrupts. May cause
+ *                 a screen flash or other behaviors defined in test_interrupts().
+ */
 void RTC_handler() {
-	cli();
-	//test_interrupts();
-	outb(0x0C, 0x70);
-	inb(0x71);
-	send_eoi(8);
-	sti();
+	cli(); // Disable interrupts
+	test_interrupts(); // Call screen flash
+	outb(0x0C, RTC_cmd); // Unlock the RTC (byte 0x0C)
+	inb(RTC_data); // Allowing it to send more interrupts
+	send_eoi(8); // Send end of interrupt for the RTC to the pic
+	sti(); // Enable interrupts 
 }

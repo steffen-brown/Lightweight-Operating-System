@@ -169,6 +169,7 @@ extern idt_desc_t idt[NUM_VEC];
 /* The descriptor used to load the IDTR */
 extern x86_desc_t idt_desc_ptr;
 
+/* Page Directory Entry (PS = 0) */
 typedef union pdt_entry_table_t {
     uint32_t val;
     struct {
@@ -185,6 +186,7 @@ typedef union pdt_entry_table_t {
     } __attribute__ ((packed));
 } pdt_entry_table_t;
 
+/* Page Directory Entry (PS = 1) */
 typedef union pdt_entry_page_t {
     uint32_t val;
     struct {
@@ -205,6 +207,7 @@ typedef union pdt_entry_page_t {
     } __attribute__ ((packed));
 } pdt_entry_page_t;
 
+/* Page Table Entry */
 typedef union pt_entry_t {
     uint32_t val;
     struct {
@@ -222,7 +225,9 @@ typedef union pt_entry_t {
     } __attribute__ ((packed));
 } pt_entry_t;
 
+// The page directory table itself
 extern uint32_t pdt[NUM_DIR_ETRY] __attribute__((aligned(4096)));
+// The page table for the first 4mb of physical memory
 extern uint32_t pt0[NUM_DIR_ETRY] __attribute__((aligned(4096)));
 
 
@@ -275,6 +280,9 @@ do {                                    \
 
 #endif /* ASM */
 
+/* Macro for Interrupt Service Routine Linkage
+This macro defines the assembly code structure for linking an interrupt
+service routine (ISR) with its respective handler, supporting optional error codes. */
 #define INT_LINKAGE(function_name, handler, vector, has_error_code) \
     .global function_name ;\
     function_name: ;\

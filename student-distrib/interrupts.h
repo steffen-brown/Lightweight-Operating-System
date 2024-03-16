@@ -4,6 +4,7 @@
 #define interrupt 0xE
 #define trap 0xF
 
+// See c file for descriptions
 extern void RTC_linkage();
 extern void keyboard_linkage();
 
@@ -25,6 +26,8 @@ extern void x87_floating_point_linkage();
 extern void alignment_check_linkage();
 extern void machine_check_linkage();
 extern void SIMD_floating_point_linkage();
+extern void assert_fault_linkage();
+extern void coprocessor_overrun_linkage();
 
 extern void system_call_linkage();
 

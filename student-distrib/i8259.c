@@ -9,7 +9,18 @@
 uint8_t master_mask = 0xFF; /* IRQs 0-7  */
 uint8_t slave_mask = 0xFF;  /* IRQs 8-15 */
 
-/* Initialize the 8259 PIC */
+/*
+ * i8259_init
+ *   DESCRIPTION: Initializes the 8259 Programmable Interrupt Controller (PIC) for IRQ handling. This involves
+ *                masking all IRQs initially, starting the initialization sequence in cascade mode, setting
+ *                vector offsets for both master and slave PICs, configuring them for 8086 mode, and restoring
+ *                the IRQ masks to their previous state. Finally, it enables the IRQ line for the cascade
+ *                between the master and slave PICs.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Modifies the operational mode of the 8259 PICs, affecting how IRQs are handled.
+ */
 void i8259_init(void) {
 
     outb(0xff, 0x21);	/* mask all of 8259A-1 */
@@ -36,15 +47,24 @@ void i8259_init(void) {
     outb(master_mask, MASTER_8259_DATA_PORT);
     outb(slave_mask, SLAVE_8259_DATA_PORT);
 
-    enable_irq(2);
+    enable_irq(2); // Enable IRQ for the secondary pic on primary
 
 }
 
-/* Enable (unmask) the specified IRQ */
+/*
+ * enable_irq
+ *   DESCRIPTION: Enables (unmasks) a specific IRQ line on the 8259 PIC, allowing the system to
+ *                receive hardware interrupts on that line. It adjusts the IRQ masks for either
+ *                the master or slave PIC depending on the IRQ number.
+ *   INPUTS: irq_num - The IRQ line number to be enabled.
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Modifies the interrupt mask on the 8259 PIC, potentially allowing new interrupts to occur.
+ */
 void enable_irq(uint32_t irq_num) {
     uint8_t new_mask;
 
-    // If IRQ is connected to the primary PIC (IRQ > 8)
+    // If IRQ is connected to the primary PIC (IRQ >= 8)
     if(irq_num >= 8) {
         // Create and output new secondary PIC mask w/ new enable bit
         new_mask = ~(1 << (irq_num - 8));
@@ -59,17 +79,27 @@ void enable_irq(uint32_t irq_num) {
 
 }
 
-/* Disable (mask) the specified IRQ */
+/*
+ * disable_irq
+ *   DESCRIPTION: Disables (masks) a specific IRQ line on the 8259 PIC, preventing the system from
+ *                receiving hardware interrupts on that line. It adjusts the IRQ masks for either
+ *                the master or slave PIC depending on the IRQ number.
+ *   INPUTS: irq_num - The IRQ line number to be disabled.
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Modifies the interrupt mask on the 8259 PIC, blocking interrupts from the specified line.
+ */
 void disable_irq(uint32_t irq_num) {
     uint8_t new_mask;
 
-    // If IRQ is connected to the primary PIC (IRQ > 8)
+    // If IRQ is connected to the primary PIC (IRQ >= 8)
     if(irq_num >= 8) { 
+        // If IRQ is connected to the secondary PIC (IRQ >= 8)
         // Create and output new primary PIC mask w/ new disabled bit
-        new_mask = 1 << (irq_num - 8);
+        new_mask = 1 << (irq_num - 8); // Offset of 8
         slave_mask |= new_mask;
         outb(slave_mask, SLAVE_8259_DATA_PORT);
-    } else { // If IRQ is connected to the secondary PIC (IRQ >= 8)
+    } else { 
         // Create and output new secondary PIC mask w/ new disabled bit
         new_mask = 1 << irq_num;
         master_mask |= new_mask;
@@ -78,14 +108,24 @@ void disable_irq(uint32_t irq_num) {
 
 }
 
-/* Send end-of-interrupt signal for the specified IRQ */
+/*
+ * send_eoi
+ *   DESCRIPTION: Sends an End-Of-Interrupt (EOI) signal to the 8259 PIC for a specific IRQ line.
+ *                This signals the PIC that the interrupt has been handled and the PIC can resume
+ *                sending interrupt requests. For interrupts from the slave PIC, an EOI is also sent
+ *                to the master PIC for the cascade IRQ (IRQ 2).
+ *   INPUTS: irq_num - The IRQ line number that has been handled.
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Signals the 8259 PIC to resume sending interrupts for the specified IRQ line.
+ */
 void send_eoi(uint32_t irq_num) {
 
-    if(irq_num >= 8) {
-        outb(EOI + (irq_num - 8), SLAVE_8259_PORT); 
-        outb(EOI + 2, MASTER_8259_PORT);
+    if(irq_num >= 8) { // If IRQ is connected to secondary PIC (IRQ >= 8)
+        outb(EOI + (irq_num - 8), SLAVE_8259_PORT); // Send EOI for approriate IRQ port on secondary pic (offset 8)
+        outb(EOI + 2, MASTER_8259_PORT); // Send EOI for IRQ 2 on the primary pic
     } else {
-        outb(EOI + irq_num, MASTER_8259_PORT);
+        outb(EOI + irq_num, MASTER_8259_PORT); // Send EOI for approriate IRQ port on primary pic
     }
 
 }

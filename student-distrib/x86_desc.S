@@ -2,6 +2,8 @@
 # vim:ts=4 noexpandtab
 
 #define ASM     1
+#define error_code 4
+#define no_error_code 0
 #include "x86_desc.h"
 
 .text
@@ -113,8 +115,9 @@ _idt:
 
 idt_bottom:
 
-.extern exc_handler
+.extern exc_handler # Aquire local access of exc_handler function
 
+# Make the linkage functions globally accessable
 .global RTC_linkage
 .global keyboard_linkage
 .global division_error_linkage
@@ -136,33 +139,39 @@ idt_bottom:
 .global machine_check_linkage
 .global SIMD_floating_point_linkage
 .global system_call_linkage
+.global assert_fault_linkage
+.global coprocessor_overrun_linkage
 
-INT_LINKAGE(RTC_linkage, exc_handler, 0x28, 0)
-INT_LINKAGE(keyboard_linkage, exc_handler, 0x21, 0)
+# Create interrupt linkage for keyboard and RTC
+INT_LINKAGE(RTC_linkage, exc_handler, 0x28, no_error_code) # 0x28: RTC vector
+INT_LINKAGE(keyboard_linkage, exc_handler, 0x21, no_error_code) # 0x21: Keyboard vector
 
-INT_LINKAGE(division_error_linkage, exc_handler, 0x0, 0)
-INT_LINKAGE(debug_linkage, exc_handler, 0x1, 0)
-INT_LINKAGE(NMI_linkage, exc_handler, 0x2, 0)
-INT_LINKAGE(breakpoint_linkage, exc_handler, 0x3, 0)
-INT_LINKAGE(overflow_linkage, exc_handler, 0x4, 0)
-INT_LINKAGE(bound_range_interrupt_linkage, exc_handler, 0x5, 0)
-INT_LINKAGE(invalid_opcode_linkage, exc_handler, 0x6, 0)
-INT_LINKAGE(device_not_avalible_linkage, exc_handler, 0x7, 0)
-INT_LINKAGE(double_fault_linkage, exc_handler, 0x8, 4)
-INT_LINKAGE(invalid_tss_linkage, exc_handler, 0xA, 4)
-INT_LINKAGE(segment_not_present_linkage, exc_handler, 0xB, 4)
-INT_LINKAGE(stack_segfault_linkage, exc_handler, 0xC, 4)
+# Create interrupt linkage for exceptions
+INT_LINKAGE(division_error_linkage, exc_handler, 0x0, no_error_code) # 0x0: Division exception
+INT_LINKAGE(debug_linkage, exc_handler, 0x1, no_error_code) # 0x1: Debug exception
+INT_LINKAGE(NMI_linkage, exc_handler, 0x2, no_error_code) # 0x2: Non-Maskable Interrupt
+INT_LINKAGE(breakpoint_linkage, exc_handler, 0x3, no_error_code) # 0x3: Breakpoint exception
+INT_LINKAGE(overflow_linkage, exc_handler, 0x4, no_error_code) # 0x4: Overflow exception
+INT_LINKAGE(bound_range_interrupt_linkage, exc_handler, 0x5, no_error_code) # 0x5: Bound Range Exceeded exception
+INT_LINKAGE(invalid_opcode_linkage, exc_handler, 0x6, no_error_code) # 0x6: Invalid Opcode exception
+INT_LINKAGE(device_not_avalible_linkage, exc_handler, 0x7, no_error_code) # 0x7: Device Not Available exception
+INT_LINKAGE(double_fault_linkage, exc_handler, 0x8, error_code) # 0x8: Double Fault exception
+INT_LINKAGE(coprocessor_overrun_linkage, exc_handler, 0x9, no_error_code) # 0x9: Coprocessor Segment Overrun
+INT_LINKAGE(invalid_tss_linkage, exc_handler, 0xA, error_code) # 0xA: Invalid Task State Segment exception
+INT_LINKAGE(segment_not_present_linkage, exc_handler, 0xB, error_code) # 0xB: Segment Not Present exception
+INT_LINKAGE(stack_segfault_linkage, exc_handler, 0xC, error_code) # 0xC: Stack-Segment Fault
+INT_LINKAGE(general_protection_fault_linkage, exc_handler, 0xD, error_code) # 0xD: General Protection Fault
+INT_LINKAGE(page_fault_linkage, exc_handler, 0xE, error_code) # 0xE: Page Fault
+INT_LINKAGE(assert_fault_linkage, exc_handler, 0xF, no_error_code) # 0xF: Assertion fault
+INT_LINKAGE(x87_floating_point_linkage, exc_handler, 0x10, no_error_code) # 0x10: x87 Floating-Point Exception
+INT_LINKAGE(alignment_check_linkage, exc_handler, 0x11, error_code) # 0x11: Alignment Check exception
+INT_LINKAGE(machine_check_linkage, exc_handler, 0x12, error_code) # 0x12: Machine Check exception
+INT_LINKAGE(SIMD_floating_point_linkage, exc_handler, 0x13, error_code) # 0x13: SIMD Floating-Point Exception
 
-INT_LINKAGE(general_protection_fault_linkage, exc_handler, 0xD, 4)
-INT_LINKAGE(page_fault_linkage, exc_handler, 0xE, 4)
-INT_LINKAGE(x87_floating_point_linkage, exc_handler, 0x10, 0)
-INT_LINKAGE(alignment_check_linkage, exc_handler, 0x11, 4)
-INT_LINKAGE(machine_check_linkage, exc_handler, 0x12, 4)
-INT_LINKAGE(SIMD_floating_point_linkage, exc_handler, 0x13, 4)
+# Create interrupt linkage for system calls
+INT_LINKAGE(system_call_linkage, exc_handler, 0x80, no_error_code) # 0x80: System call vector
 
-INT_LINKAGE(system_call_linkage, exc_handler, 0x80, 0)
-
-
+# Allocate space for the paging directory table (init w/ 0s)
 .align 4096
 pdt:
 _pdt:
@@ -172,6 +181,7 @@ _pdt:
 
 pdt_bottom:
 
+# Allocate space for a paging table (init w/ 0s)
 .align 4096
 pt0:
 _pt0:
@@ -180,26 +190,44 @@ _pt0:
     .endr
 pt0_bottom:
 
+/*
+ * load_page_directory
+ *   DESCRIPTION: Sets the page directory base register (CR3) to the specified page directory address
+ *                for paging translation.
+ *   INPUTS: Address of the page directory (via stack argument)
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Modifies the CR3 register, affecting the paging translation table used by the system.
+ */
 load_page_directory:
-    pushl %ebp
-    movl %esp, %ebp
-    movl 8(%esp), %eax
-    movl %eax, %cr3
-    movl %ebp, %esp
-    popl %ebp
-    ret
+    pushl %ebp          # Save the base pointer.
+    movl %esp, %ebp     # Set the base pointer to the current stack pointer.
+    movl 8(%esp), %eax  # Move the first argument (address of the page directory) into EAX.
+    movl %eax, %cr3     # Load the page directory base address into CR3.
+    movl %ebp, %esp     # Restore the stack pointer.
+    popl %ebp           # Restore the base pointer.
+    ret                 # Return from the function.
 
+/*
+ * enable_paging_bit
+ *   DESCRIPTION: Enables paging by setting the paging enable bit in the CR0 register and the Page Size
+ *                Extension (PSE) bit in the CR4 register, allowing the system to use memory paging.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Modifies CR0 to enable paging and CR4 to enable PSE, affecting the system's memory management mode.
+ */
 enable_paging_bit:
-    pushl %ebp
-    movl %esp, %ebp
+    pushl %ebp          # Save the base pointer.
+    movl %esp, %ebp     # Set the base pointer to the current stack pointer.
 
-    mov %cr4, %eax
-    or $0x00000010, %eax 
-    mov %eax, %cr4
+    mov %cr4, %eax      # Move the current value of CR4 into EAX.
+    or $0x00000010, %eax # OR EAX with 0x10 to set the PSE (Page Size Extension) bit.
+    mov %eax, %cr4      # Write the new value back to CR4.
 
-    movl %cr0, %eax
-    or $0x80000000, %eax
-    movl %eax, %cr0
-    movl %ebp, %esp
-    popl %ebp
-    ret
+    movl %cr0, %eax     # Move the current value of CR0 into EAX.
+    or $0x80000000, %eax # OR EAX with 0x80000000 to set the paging enable bit.
+    movl %eax, %cr0     # Write the new value back to CR0.
+    movl %ebp, %esp     # Restore the stack pointer.
+    popl %ebp           # Restore the base pointer.
+    ret                 # Return from the function.

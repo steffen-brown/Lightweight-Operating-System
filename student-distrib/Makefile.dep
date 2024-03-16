@@ -9,4 +9,4 @@ keyboard.o: keyboard.c keyboard.h types.h i8259.h lib.h
 lib.o: lib.c lib.h types.h
 paging.o: paging.c paging.h x86_desc.h types.h lib.h
 RTC.o: RTC.c RTC.h lib.h types.h i8259.h
-tests.o: tests.c tests.h x86_desc.h types.h lib.h
+tests.o: tests.c tests.h x86_desc.h types.h lib.h i8259.h

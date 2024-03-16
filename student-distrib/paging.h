@@ -1,6 +1,7 @@
 #ifndef PAGING_H
 #define PAGING_H
 
+// See c file for descriptions
 void setup_kernel_paging();
 void enable_paging();
 
