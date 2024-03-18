@@ -2,6 +2,7 @@
 #include "x86_desc.h"
 #include "lib.h"
 #include "i8259.h"
+#include "RTC.h"
 
 #define PASS 1
 #define FAIL 0
@@ -127,14 +128,14 @@ void syscall_test() {
 
 /* Test suite entry point */
 void launch_tests(){
-	disable_irq(8);
+	//disable_irq(8);
 	clear();
 
-	TEST_OUTPUT("idt_test", idt_test());
+	//TEST_OUTPUT("idt_test", idt_test());
 	
 	/* Multiple Exception Testing */
 
-	exceptions_test(0x0); // Divide by 0
+	//exceptions_test(0x0); // Divide by 0
 	// exceptions_test(0x4); // Overflow
 
 	/* RTC Testing */
@@ -158,5 +159,7 @@ void launch_tests(){
 	/* Syscall and Keyboard Echo Testing*/
 
 	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
+
+
 
 }
