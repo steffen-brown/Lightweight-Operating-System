@@ -13,6 +13,11 @@
 #define LEFT_SHIFT_REL  0xAA    // left shift released scan code
 #define RIGHT_SHIFT_REL 0xB6    // right shift released scan code 
 #define CAPS_LOCK       0x3A    // caps lock scan code
+#define TAB             0x0F    // tab scan code
+#define CTRL            0x1D    // control scan code
+#define CTRL_REL        0x9D    // control released scan code
+#define L               0x26    // L scan code
+
 
 char keyboard_buffer[BUFFER_SIZE];
 
