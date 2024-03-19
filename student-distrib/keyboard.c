@@ -67,7 +67,7 @@ void keyboard_handler(void) {
         caps_lock_flag = 0;
     }
 
-    printf("Shift Flag: %d, Caps Lock Flag: %d, Scan Code: %d\n\n", shift_flag, caps_lock_flag, scan_code);
+    printf("Shift Flag: %d, Caps Lock Flag: %d, Scan Code: %d\n", shift_flag, caps_lock_flag, scan_code);
 
     // Filter out invalid or otherwise unhandled scancodes
     if (scan_code < SCAN_CODES && scan_codes_table[scan_code]) {

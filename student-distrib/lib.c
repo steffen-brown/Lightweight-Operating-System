@@ -22,6 +22,8 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
+    screen_y = 0;
+    screen_x = 0;
 }
 
 /* Standard printf().
@@ -176,7 +178,32 @@ void putc(uint8_t c) {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
         screen_x %= NUM_COLS;
-        screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+
+        screen_y = (screen_y + (screen_x / NUM_COLS));
+
+        int row, col;
+        if(screen_y >= 25) {
+            for(row = 1; row < NUM_ROWS; row++) {
+                for(col = 0; col < NUM_COLS; col++) {
+                    // Calculate the position in video memory of the character to move
+                    char *src = video_mem + ((NUM_COLS * row + col) << 1);
+                    char *dst = video_mem + ((NUM_COLS * (row - 1) + col) << 1);
+
+                    // Copy character and attribute from the source row to the destination row
+                    *dst = *src; // Copy character
+                    *(dst + 1) = *(src + 1); // Copy attribute
+                }
+            }
+
+            // Clear the last line
+            for(col = 0; col < NUM_COLS; col++) {
+                char *dst = video_mem + ((NUM_COLS * (NUM_ROWS - 1) + col) << 1);
+                *dst = ' '; // Set character to space
+                *(dst + 1) = ATTRIB; // Set attribute
+            }
+
+            screen_y = NUM_ROWS - 1; // Move cursor to the beginning of the last line
+        }
     }
 }
 

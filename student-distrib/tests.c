@@ -128,7 +128,7 @@ void syscall_test() {
 
 /* Test suite entry point */
 void launch_tests(){
-	//disable_irq(8);
+	// disable_irq(8);
 	clear();
 
 	//TEST_OUTPUT("idt_test", idt_test());
@@ -160,6 +160,6 @@ void launch_tests(){
 
 	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
 
-
+	rtc_open();
 
 }

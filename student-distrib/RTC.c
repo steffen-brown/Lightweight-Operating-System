@@ -45,7 +45,7 @@ void RTC_init() {
  */
 void RTC_handler() {
 	cli(); // Disable interrupts
-	// test_interrupts(); // Call screen flash
+	//test_interrupts(); // Call screen flash
 	outb(0x0C, RTC_cmd); // Unlock the RTC (byte 0x0C)
 	inb(RTC_data); // Allowing it to send more interrupts
 	rtc_flag = 0;
