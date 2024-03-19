@@ -3,6 +3,7 @@
 #include "lib.h"
 #include "i8259.h"
 #include "RTC.h"
+#include "keyboard.h"
 
 #define PASS 1
 #define FAIL 0
@@ -160,6 +161,10 @@ void launch_tests(){
 
 	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
 
-	rtc_open();
+	uint8_t text[120];
+	terminal_read(text, 120);
+	text[119] = '\0';
+
+	puts(text);
 
 }

@@ -5,6 +5,7 @@
         "i8259.h": "c",
         "lib.h": "c",
         "types.h": "c",
-        "ios": "c"
+        "ios": "c",
+        "__locale": "c"
     }
 }

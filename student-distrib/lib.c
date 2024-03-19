@@ -8,8 +8,8 @@
 #define NUM_ROWS    25
 #define ATTRIB      0x7
 
-static int screen_x;
-static int screen_y;
+int screen_x;
+int screen_y;
 static char* video_mem = (char *)VIDEO;
 
 /* void clear(void);
@@ -173,13 +173,6 @@ void putc(uint8_t c) {
     if(c == '\n' || c == '\r') {
         screen_y++;
         screen_x = 0;
-    } else {
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        screen_x++;
-        screen_x %= NUM_COLS;
-
-        screen_y = (screen_y + (screen_x / NUM_COLS));
 
         int row, col;
         if(screen_y >= 25) {
@@ -204,6 +197,13 @@ void putc(uint8_t c) {
 
             screen_y = NUM_ROWS - 1; // Move cursor to the beginning of the last line
         }
+    } else {
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+        screen_x++;
+        screen_x %= NUM_COLS;
+        screen_y = (screen_y + (screen_x / NUM_COLS));
+
     }
 }
 

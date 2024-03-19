@@ -34,6 +34,8 @@ static int shift_flag;
 static int caps_lock_flag;
 static int ctrl_flag;
 
+static volatile int enter_flag;
+
 /*
  * keyboard_init
  *   DESCRIPTION: Initializes keyboard interrupt on the PIC
@@ -48,6 +50,7 @@ void keyboard_init(void) {
     shift_flag = 0;
     caps_lock_flag = 0;
     ctrl_flag = 0;
+    enter_flag = 0;
 }
 
 /*
@@ -80,17 +83,25 @@ void keyboard_handler(void) {
         ctrl_flag = 0;
     }
 
+    if (scan_code == ENTER) { // handles flags when enter is pressed and released
+        enter_flag = 1;
+    } else if (scan_code == ENTER_REL) {
+        enter_flag = 0;
+    }
+
+    if (enter_flag) { // adds newline when enter is hit
+        keyboard_index = 0;
+        putc('\n');
+    }
+
     if (ctrl_flag && scan_code == L) { // clears screen (ctrl L) 
         int i;
-        for (i = 0; i < BUFFER_SIZE; i++) {
+        for (i = 0; i < BUFFER_SIZE; i++) { // resets keyboard buffer
             keyboard_buffer[i] = '\0';
         }
         keyboard_index = 0;
         
         clear();
-
-        // screen_x = 0;
-        // screen_y = 0;
     }
 
     if (scan_code == TAB) { // handles extra space when tab is pressed
@@ -102,8 +113,15 @@ void keyboard_handler(void) {
         keyboard_index++;
     }
 
-    // printf("Shift Flag: %d, Caps Lock Flag: %d, Scan Code: %d\n", shift_flag, caps_lock_flag, scan_code);
-
+    if (keyboard_index > 0 && keyboard_index <= BUFFER_SIZE - 1 && scan_code == BACKSPACE) { // handle backspacing
+        keyboard_buffer[keyboard_index - 1] = '\0';
+        screen_x--;
+        putc(keyboard_buffer[keyboard_index - 1]); // remove character
+        if (keyboard_index > 0) {
+            screen_x--; // update cursor
+        }
+        keyboard_index--;
+    }
 
     // Filter out invalid or otherwise unhandled scancodes
     if (scan_code < SCAN_CODES && scan_codes_table[scan_code] && !ctrl_flag) {
@@ -120,3 +138,28 @@ void keyboard_handler(void) {
 
     send_eoi(1); // Send EOI for keyboard to the PIC
 }
+
+int terminal_read(void* buffer, uint32_t bytes) {
+    if(bytes == 0) {
+        return 0;
+    }
+
+    enter_flag = 0;
+
+    while(!enter_flag); // Wait for enter to be pressed
+
+    int end_flag = 0;
+
+    uint8_t* output = (uint8_t*) buffer;
+
+    int output_index = 0;
+    while (!end_flag && output_index < bytes) {
+        output[output_index] = keyboard_buffer[output_index];
+        if (keyboard_buffer[output_index] == '\n') {
+            end_flag = 1;
+        }
+        output_index++;
+    }
+
+    return output_index;
+} 

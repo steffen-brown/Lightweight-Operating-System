@@ -17,7 +17,9 @@
 #define CTRL            0x1D    // control scan code
 #define CTRL_REL        0x9D    // control released scan code
 #define L               0x26    // L scan code
-
+#define ENTER           0x1C    // enter scan code
+#define ENTER_REL       0X9C    // enter released scan code
+#define BACKSPACE       0x0E    // backspace scan code
 
 char keyboard_buffer[BUFFER_SIZE];
 
@@ -26,5 +28,7 @@ void keyboard_init(void);
 
 /* handles keyboard interrupts and prints typed input to screen */
 void keyboard_handler(void);
+
+extern int terminal_read(void* buffer, uint32_t bytes);
 
 #endif
