@@ -34,6 +34,7 @@ static int shift_flag;
 static int caps_lock_flag;
 static int ctrl_flag;
 static volatile int enter_flag;
+static int newline_flag;
 
 /*
  * keyboard_init
@@ -50,6 +51,7 @@ void keyboard_init(void) {
     caps_lock_flag = 0;
     ctrl_flag = 0;
     enter_flag = 0;
+    newline_flag = 0;
 }
 
 /*
@@ -87,8 +89,11 @@ void keyboard_handler(void) {
         enter_flag = 0;
     }
 
-    if (keyboard_index == MAX_LINE) { // adds new line when end of line is reached
+    if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
+        keyboard_buffer[keyboard_index] = '\n';
         putc('\n');
+        keyboard_index++;
+        newline_flag = 1;
     }
 
     if (enter_flag) { // adds newline when enter is hit
@@ -126,13 +131,26 @@ void keyboard_handler(void) {
     }
 
     if (keyboard_index > 0 && keyboard_index <= BUFFER_SIZE - 1 && scan_code == BACKSPACE) { // handle backspacing
-        keyboard_buffer[keyboard_index - 1] = '\0';
-        screen_x--;
-        putc(keyboard_buffer[keyboard_index - 1]); // remove character
-        if (keyboard_index > 0) {
-            screen_x--; // update cursor
+        if (newline_flag && keyboard_buffer[keyboard_index - 1] == '\n') { // when backspacing to previous line
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            keyboard_buffer[keyboard_index - 2] = '\0';
+            screen_y--;
+            int cur_y = screen_y; // deal with cursor
+            screen_x = MAX_LINE - 1;
+            putc(keyboard_buffer[keyboard_index - 2]); // remove character
+            screen_y = cur_y;
+            screen_x = MAX_LINE - 1;
+            keyboard_index = keyboard_index - 2; // move before /n and prev character
+            newline_flag = 0;
+        } else {
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            screen_x--;
+            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            if (keyboard_index > 0) {
+                screen_x--; // update cursor
+            }
+            keyboard_index--;
         }
-        keyboard_index--;
     }
 
     // Filter out invalid or otherwise unhandled scancodes
