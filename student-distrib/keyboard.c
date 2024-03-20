@@ -33,8 +33,8 @@ static int keyboard_index; // global variable for keyboard buffer index
 static int shift_flag;
 static int caps_lock_flag;
 static int ctrl_flag;
-
 static volatile int enter_flag;
+static int newline_flag;
 
 /*
  * keyboard_init
@@ -51,6 +51,7 @@ void keyboard_init(void) {
     caps_lock_flag = 0;
     ctrl_flag = 0;
     enter_flag = 0;
+    newline_flag = 0;
 }
 
 /*
@@ -76,7 +77,6 @@ void keyboard_handler(void) {
         caps_lock_flag = 0;
     }
 
-
     if (scan_code == CTRL) { // handles flags when control is pressed and released
         ctrl_flag = 1;
     } else if (scan_code == CTRL_REL) {
@@ -89,8 +89,21 @@ void keyboard_handler(void) {
         enter_flag = 0;
     }
 
+    if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
+        keyboard_buffer[keyboard_index] = '\n';
+        putc('\n');
+        keyboard_index++;
+        newline_flag = 1;
+    }
+
     if (enter_flag) { // adds newline when enter is hit
+        int i;
+
+        for (i = 0; i < BUFFER_SIZE; i++) { // resets keyboard buffer
+            keyboard_buffer[i] = '\0';
+        }
         keyboard_index = 0;
+
         putc('\n');
     }
 
@@ -104,27 +117,44 @@ void keyboard_handler(void) {
         clear();
     }
 
-    if (scan_code == TAB) { // handles extra space when tab is pressed
-        keyboard_buffer[keyboard_index] = scan_codes_table[scan_code];
-        putc(keyboard_buffer[keyboard_index]);
-        keyboard_index++;
-        keyboard_buffer[keyboard_index] = scan_codes_table[scan_code];
-        putc(keyboard_buffer[keyboard_index]);
-        keyboard_index++;
+    if (scan_code == TAB && keyboard_index + 1 < BUFFER_SIZE) { // handles extra space when tab is pressed
+        if (keyboard_index + 2 < BUFFER_SIZE) {
+            keyboard_buffer[keyboard_index] = scan_codes_table[scan_code];
+            putc(keyboard_buffer[keyboard_index]);
+            keyboard_index++;
+        }
+        if (keyboard_index + 2 < BUFFER_SIZE) {
+            keyboard_buffer[keyboard_index] = scan_codes_table[scan_code];
+            putc(keyboard_buffer[keyboard_index]);
+            keyboard_index++;
+        }
     }
 
     if (keyboard_index > 0 && keyboard_index <= BUFFER_SIZE - 1 && scan_code == BACKSPACE) { // handle backspacing
-        keyboard_buffer[keyboard_index - 1] = '\0';
-        screen_x--;
-        putc(keyboard_buffer[keyboard_index - 1]); // remove character
-        if (keyboard_index > 0) {
-            screen_x--; // update cursor
+        if (newline_flag && keyboard_buffer[keyboard_index - 1] == '\n') { // when backspacing to previous line
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            keyboard_buffer[keyboard_index - 2] = '\0';
+            screen_y--;
+            int cur_y = screen_y; // deal with cursor
+            screen_x = MAX_LINE - 1;
+            putc(keyboard_buffer[keyboard_index - 2]); // remove character
+            screen_y = cur_y;
+            screen_x = MAX_LINE - 1;
+            keyboard_index = keyboard_index - 2; // move before /n and prev character
+            newline_flag = 0;
+        } else {
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            screen_x--;
+            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            if (keyboard_index > 0) {
+                screen_x--; // update cursor
+            }
+            keyboard_index--;
         }
-        keyboard_index--;
     }
 
     // Filter out invalid or otherwise unhandled scancodes
-    if (scan_code < SCAN_CODES && scan_codes_table[scan_code] && !ctrl_flag) {
+    if (scan_code < SCAN_CODES && scan_codes_table[scan_code] && !ctrl_flag && keyboard_index < BUFFER_SIZE - 1) {
         if (shift_flag && !caps_lock_flag) {
             keyboard_buffer[keyboard_index] = scan_codes_table_shift[scan_code]; // get matching character shifted for scan_code
         } else if (caps_lock_flag && !shift_flag) {
