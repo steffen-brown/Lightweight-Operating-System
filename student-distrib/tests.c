@@ -162,9 +162,10 @@ void launch_tests(){
 	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
 
 	uint8_t text[120];
-	terminal_read(text, 120);
+	int bytes = terminal_read(text, 120);
 	text[119] = '\0';
 
-	puts(text);
+
+	terminal_write(text, bytes);
 
 }

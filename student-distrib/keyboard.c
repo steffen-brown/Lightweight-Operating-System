@@ -97,14 +97,11 @@ void keyboard_handler(void) {
     }
 
     if (enter_flag) { // adds newline when enter is hit
-        int i;
-
-        for (i = 0; i < BUFFER_SIZE; i++) { // resets keyboard buffer
-            keyboard_buffer[i] = '\0';
-        }
-        keyboard_index = 0;
-
+        keyboard_buffer[keyboard_index++] = '\n';
+        keyboard_buffer[keyboard_index] = '\0';
         putc('\n');
+        keyboard_index = 0;
+        
     }
 
     if (ctrl_flag && scan_code == L) { // clears screen (ctrl L) 
@@ -185,11 +182,36 @@ int terminal_read(void* buffer, uint32_t bytes) {
     int output_index = 0;
     while (!end_flag && output_index < bytes) {
         output[output_index] = keyboard_buffer[output_index];
-        if (keyboard_buffer[output_index] == '\n') {
+        if (keyboard_buffer[output_index] == '\0') {
             end_flag = 1;
         }
         output_index++;
     }
 
-    return output_index;
+    return output_index - 1;
 } 
+
+
+int terminal_write(void* buffer, uint32_t bytes) {
+    uint8_t* input = (uint8_t*) buffer;
+
+    int bytes_written = 0;
+
+    int i;
+    for(i = 0; i < bytes; i++) {
+        putc(input[i]);
+        bytes_written++;
+
+    }
+
+    return bytes_written;
+
+}
+
+int terminal_open() {
+    return -1;
+}
+
+int terminal_close() {
+    return -1;
+}
