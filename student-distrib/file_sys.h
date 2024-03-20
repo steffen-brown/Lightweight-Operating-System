@@ -1,0 +1,70 @@
+#ifndef FILE_SYS_H
+#define FILE_SYS_H
+
+#include "lib.h"
+
+// Constants
+#define BLOCK_SIZE 4096                                         // Block size in bytes
+#define MAX_FILES 63                                            // Maximum number of files (excluding directory entry)
+#define MAX_FILE_NAME 32                                        // Maximum file name length
+#define MAX_OPEN_FILES 8                                        // Maximum number of open files per task
+#define DIR_ENTRY_SIZE 64                                       // Directory entry size in bytes
+#define BOOT_BLOCK_RESERVED 52                                  // Reserved bytes in the boot block
+#define INODE_DATA_BLOCKS ((BLOCK_SIZE / sizeof(uint32_t)) - 4) // Adjust for inode structure size
+
+// File types
+#define FILE_TYPE_RTC 0
+#define FILE_TYPE_DIR 1
+#define FILE_TYPE_REG 2
+
+// File system return codes
+#define FS_SUCCESS 0
+#define FS_ERROR -1
+
+// Boot block structure
+typedef struct
+{
+    uint32_t num_dir_entries;              // Number of directory entries
+    uint32_t num_inodes;                   // Number of inodes
+    uint32_t num_data_blocks;              // Number of data blocks
+    uint8_t reserved[BOOT_BLOCK_RESERVED]; // Reserved bytes
+    dir_entry_t dir_entries[MAX_FILES];    // Directory entries
+} boot_block_t;
+
+// Directory entry structure
+typedef struct
+{
+    char name[MAX_FILE_NAME]; // File name
+    uint8_t file_type;        // File type
+    uint8_t reserved[24];     // Reserved space to fill the structure to 64 bytes
+    uint32_t inode_num;       // Inode number
+} dir_entry_t;
+
+// Inode structure (for regular files)
+typedef struct
+{
+    uint32_t size;                      // File size in bytes
+    uint32_t blocks[INODE_DATA_BLOCKS]; // Data blocks of the file
+} inode_t;
+
+// File descriptor structure
+typedef struct
+{
+    void *file_ops;    // Pointer to file operations table
+    uint32_t inode;    // Inode number (valid for data files)
+    uint32_t position; // Current position in the file
+    uint32_t flags;    // File status flags
+} file_desc_t;
+
+// Data block structure
+typedef struct
+{
+    uint8_t data[BLOCK_SIZE]; // Data block
+} data_block_t;
+
+// Function prototypes for file system operations
+int read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry);
+int read_dentry_by_index(uint32_t index, dir_entry_t *dentry);
+int read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length);
+
+#endif // FILE_SYS_H
