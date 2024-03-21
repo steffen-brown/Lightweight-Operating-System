@@ -86,33 +86,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
 
 int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
 {
-    // Check if the file descriptor is valid
-    if (fd < 0 || fd >= MAX_FILES)
-    {
-        return FS_ERROR; // Return error if file descriptor is invalid
-    }
-
-    // Get the current PCB
-    pcb_t *pcb = get_pcb();
-    // Get the current directory index
-    uint32_t dir_index = pcb->file_desc[fd].file_position;
-
-    // Check if the directory index is within range
-    if (dir_index >= g_boot_block->num_dir_entries)
-    {
-        return FS_ERROR; // Return error if directory index is out of range
-    }
-
-    // Get the directory entry at the current index
-    dir_entry_t *dentry = &g_boot_block->dir_entries[dir_index];
-
-    // Copy the directory entry to the provided buffer
-    memcpy(buf, dentry->name, MAX_FILE_NAME);
-
-    // Update the file position in the file descriptor
-    pcb->file_desc[fd].file_position++;
-
-    return FS_SUCCESS; // Return success
+    // TODO
 }
 
 int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes)
@@ -132,33 +106,7 @@ int32_t dir_close(int32_t fd)
 
 int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
 {
-    // Check if the file descriptor is valid
-    if (fd < 0 || fd >= MAX_FILES)
-    {
-        return FS_ERROR; // Return error if file descriptor is invalid
-    }
-
-    // Get the current PCB
-    pcb_t *pcb = get_pcb();
-    // Get the current file position
-    uint32_t file_position = pcb->file_desc[fd].file_position;
-
-    // Check if the file position is within range
-    if (file_position >= g_boot_block->num_inodes)
-    {
-        return FS_ERROR; // Return error if file position is out of range
-    }
-
-    // Get the inode at the current file position
-    inode_t *file_inode = &g_inodes[file_position];
-
-    // Read data from the inode
-    int32_t bytes_read = read_data(file_position, pcb->file_desc[fd].file_position, buf, nbytes);
-
-    // Update the file position in the file descriptor
-    pcb->file_desc[fd].file_position += bytes_read;
-
-    return bytes_read; // Return the number of bytes read
+    // toDO
 }
 
 int32_t file_write(int32_t fd, const void *buf, int32_t nbytes)
@@ -168,17 +116,12 @@ int32_t file_write(int32_t fd, const void *buf, int32_t nbytes)
 
 int32_t file_open(const uint8_t *filename)
 {
-    // Check if the file exists
-    if (read_dentry_by_name(filename, NULL) == FS_ERROR)
-    {
-        return FS_ERROR; // Return error if the file does not exist
-    }
-    return FS_SUCCESS; // Return success
+    // todo
 }
 
 int32_t file_close(int32_t fd)
 {
-    return FS_SUCCESS; // Return success
+    // todo
 }
 
 // Function to read a file by name
