@@ -63,8 +63,8 @@ typedef struct
 } data_block_t;
 
 // Function prototypes for file system operations
-int read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry);
-int read_dentry_by_index(uint32_t index, dir_entry_t *dentry);
-int read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length);
+int32_t read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry);
+int32_t read_dentry_by_index(uint32_t index, dir_entry_t *dentry);
+int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length);
 
 #endif // FILE_SYS_H
