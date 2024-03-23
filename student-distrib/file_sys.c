@@ -162,29 +162,13 @@ int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes)
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-file_desc_t dir_open(const uint8_t *filename)
+int32_t dir_open(const uint8_t *filename)
 {
-    // return FS_SUCCESS; // Return success
-    
-    // dir_entry_t* dentry;
-    // if (read_dentry_by_name(filename, dentry) != -1){
-    //     return FS_SUCCESS;
-    // }
-    // return FS_ERROR;
-
-
-    // TODO: I feel we should be opening the file and doing something with it. Not sure how return 0 achieves that.
-    // However, since we need to return 0, can switch back to FS_SUCCESS
-    dir_entry_t* dentry; file_desc_t fd;
+    dir_entry_t* dentry;
     if (read_dentry_by_name(filename, dentry) != -1){
-        fd.flags = FD_ACTIVE;
-        fd.position = 0; // start of file
-        fd.inode = dentry->inode_num;
-        // TODO: set fd.file_ops to some pointer. Not sure where file operations table is
-        return fd;
+        return FS_SUCCESS;
     }
-    else {fd.flags = FD_ERROR; }// could not open
-    return fd;
+    return FS_ERROR;
 }
 
 
