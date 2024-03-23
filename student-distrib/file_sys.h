@@ -4,7 +4,7 @@
 #include "lib.h"
 
 // Constants
-#define BLOCK_SIZE 4096                                         // Block size in bytes
+#define BLOCK_SIZE 4096                                         // Block size in bytes (4kB)
 #define MAX_FILES 63                                            // Maximum number of files (excluding directory entry)
 #define MAX_FILE_NAME 32                                        // Maximum file name length
 #define MAX_OPEN_FILES 8                                        // Maximum number of open files per task
@@ -20,6 +20,11 @@
 // File system return codes
 #define FS_SUCCESS 0
 #define FS_ERROR -1
+
+// File descriptor flags
+#define FD_ERROR     -1
+#define FD_AVAILABLE  0
+#define FD_ACTIVE     1
 
 // Boot block structure
 typedef struct

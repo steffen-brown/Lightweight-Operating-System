@@ -5,16 +5,36 @@ boot_block_t *g_boot_block;
 inode_t *g_inodes;
 data_block_t *g_data_blocks;
 
-// Function to initialize the file system
+
+/*
+ * fileSystem_init
+ *   DESCRIPTION: Function to initialize the file system
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 void fileSystem_init(uint8_t *fs_start)
 {
     // Set global pointers to their respective locations in the file system memory
     g_boot_block = (boot_block_t *)fs_start;
-    g_inodes = (inode_t *)(fs_start + BLOCK_SIZE);                                            // inodes start right after the boot block
+    g_inodes = (inode_t *)(fs_start + BLOCK_SIZE); // inodes start right after the boot block
     g_data_blocks = (data_block_t *)(fs_start + (1 + g_boot_block->num_inodes) * BLOCK_SIZE); // data blocks start right after bootblock + all inodes
 }
 
-// Function to read a directory entry by name
+
+
+// -----------------read dentry by name, read dentry by index and read data--------------------
+
+
+/*
+ * read_dentry_by_name
+ *   DESCRIPTION: Function to read a directory entry by name
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: 0=FS_SUCCESS:success, -1=FS_ERROR:failure
+ *   SIDE EFFECTS: TODO
+ */
 int32_t read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry)
 {
     // Loop through directory entries in the boot block
@@ -32,20 +52,37 @@ int32_t read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry)
     return FS_ERROR;
 }
 
-// Function to read a directory entry by index
+
+/*
+ * read_dentry_by_index
+ *   DESCRIPTION: Function to read a directory entry by index
+ *          NOTE: "index" is NOT inode number. It is the index in boot block
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t read_dentry_by_index(uint32_t index, dir_entry_t *dentry)
 {
-    // Check if the index is within range
+    // Error if index is out of bounds
     if (index >= g_boot_block->num_dir_entries || index < 0)
     {
-        return FS_ERROR; // Return error if index is out of range
+        return FS_ERROR;
     }
     // Copy the directory entry at the provided index to the provided dentry structure
     *dentry = g_boot_block->dir_entries[index];
     return FS_SUCCESS;
 }
 
-// Function to read data from an inode
+
+/*
+ * read_data
+ *   DESCRIPTION: Function to read data from an inode
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length)
 {
     if (inode >= g_boot_block->num_inodes || inode < 0)
@@ -84,44 +121,155 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
     return bytes_read; // Return the number of bytes read
 }
 
+
+
+// -----------------Core Driver Functions (for directory and file)--------------------
+
+
+/*
+ * dir_read
+ *   DESCRIPTION: Read files filename by filename, including “.”
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
 {
     // TODO
 }
 
+
+/*
+ * dir_write
+ *   DESCRIPTION: Write directory to filesystem => Does nothing since read-only file system
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes)
 {
     return FS_ERROR; // Return error (directories are read-only)
 }
 
-int32_t dir_open(const uint8_t *filename)
+
+/*
+ * dir_open
+ *   DESCRIPTION: Opens a directory file (note file types) using read_dentry_by_name, return 0
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
+file_desc_t dir_open(const uint8_t *filename)
 {
-    return FS_SUCCESS; // Return success
+    // return FS_SUCCESS; // Return success
+    
+    // dir_entry_t* dentry;
+    // if (read_dentry_by_name(filename, dentry) != -1){
+    //     return FS_SUCCESS;
+    // }
+    // return FS_ERROR;
+
+
+    // TODO: I feel we should be opening the file and doing something with it. Not sure how return 0 achieves that.
+    // However, since we need to return 0, can switch back to FS_SUCCESS
+    dir_entry_t* dentry; file_desc_t fd;
+    if (read_dentry_by_name(filename, dentry) != -1){
+        fd.flags = FD_ACTIVE;
+        fd.position = 0; // start of file
+        fd.inode = dentry->inode_num;
+        // TODO: set fd.file_ops to some pointer. Not sure where file operations table is
+        return fd;
+    }
+    else {fd.flags = FD_ERROR; }// could not open
+    return fd;
 }
 
+
+/*
+ * dir_close
+ *   DESCRIPTION: TODO
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t dir_close(int32_t fd)
 {
     return FS_SUCCESS; // Return success
 }
 
+
+/*
+ * file_read
+ *   DESCRIPTION: Reads nbytes bytes of data from file into buf using read_data
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
 {
-    // toDO
+    if (buf == NULL || nbytes < 0) return FS_ERROR; // Error check 1
+    
+    // TODO: IDK how to get this pointer and offset
+    uint32_t inode_ptr = NULL;
+    uint32_t offset = 0;
+    int32_t transfer_size = read_data(inode_ptr, offset, buf, nbytes);
+    if (transfer_size >= 0 && transfer_size <= nbytes){ // Error check 2: Incorrect/invalid number of bytes transferred
+        // TODO: update file cursor line
+        
+        return transfer_size;
+    }
+    return FS_ERROR;
 }
 
+
+/*
+ * file_write
+ *   DESCRIPTION: Write file to filesystem => Does nothing since read-only file system
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t file_write(int32_t fd, const void *buf, int32_t nbytes)
 {
     return FS_ERROR; // Return error (files are read-only)
 }
 
+
+/*
+ * file_open
+ *   DESCRIPTION: Initialize any temporary structures, return 0
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t file_open(const uint8_t *filename)
 {
-    // todo
+    if (strncmp((const int8_t *)filename, (const int8_t*)"", 1) == 0){
+        return FS_ERROR;
+    }
+    dir_entry_t* dentry;
+    return read_dentry_by_name(filename, dentry);
 }
 
+
+/*
+ * file_close
+ *   DESCRIPTION: Delete any temporary structures (undo tasks in file_open), return 0
+ *   INPUTS: TODO
+ *   OUTPUTS: TODO
+ *   RETURN VALUE: TODO
+ *   SIDE EFFECTS: TODO
+ */
 int32_t file_close(int32_t fd)
 {
-    // todo
+    return FS_SUCCESS;
 }
 
 // Function to read a file by name
