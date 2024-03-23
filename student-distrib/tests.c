@@ -125,11 +125,86 @@ void syscall_test() {
 	asm volatile ("int $0x80");
 }
 
+/*
+ * rtc_wait
+ *   DESCRIPTION: Waits for a specified number of RTC (Real-Time Clock) interrupt cycles.
+ *                This is typically used to delay execution for a period dependent on the current RTC frequency.
+ *   INPUTS: cycles - The number of RTC interrupt cycles to wait for.
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Delays the execution by synchronizing with the RTC interrupts, effectively causing
+ *                 the calling thread to wait for the specified number of cycles. This can impact
+ *                 system responsiveness and scheduling, depending on the duration of the wait.
+ */
+void rtc_wait(int cycles) {
+	int i;
+	for(i = 0; i < cycles; i++) {
+		rtc_read();
+	}
+}
 
+/*
+ * rtc_frequency_test
+ *   DESCRIPTION: Tests the RTC (Real-Time Clock) by setting its interrupt frequency to various values and
+ *                displaying the current frequency on screen. It demonstrates the RTC's ability to generate
+ *                interrupts at different rates, which can be used for timing and scheduling purposes.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Changes the RTC interrupt frequency multiple times, which affects the timing and scheduling
+ *                 of RTC interrupt handling. This function may also modify the screen output to display the
+ *                 current frequency. Enabling and disabling IRQs can impact system interrupt handling.
+ */
+void rtc_frequency_test() {
+	enable_irq(8);
+	clear();
+	putc('2');
+
+	rtc_open();
+	rtc_wait(4);
+
+	int i;
+	for(i = 4; i <= 1028; i *= 2) {
+		clear();
+		printf("%d", i);
+		rtc_write(&i);
+		rtc_wait(i);
+	}
+
+	rtc_close();
+	
+	disable_irq(8);
+	clear();
+}
+
+/*
+ * keyboard_test
+ *   DESCRIPTION: Continuously reads input from the keyboard and echoes it back to the screen until the
+ *                sequence 'next' is entered. This function is used to test keyboard input and terminal
+ *                output functionality.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Reads keyboard input and writes to the terminal, which can modify the terminal display.
+ *                 The function loops indefinitely until a specific input sequence is received, potentially
+ *                 affecting system responsiveness or leading to a hang if the exit condition is not met.
+ */
+void keyboard_test() {
+	terminal_open();
+
+	uint8_t text_buffer[128];
+	while(!(text_buffer[0] == 'n' && text_buffer[1] == 'e' && text_buffer[2] == 'x' && text_buffer[3] == 't')) {
+		int bytes_read = terminal_read(text_buffer, 128);
+		printf("Number of bytes read: %d\n", bytes_read);
+		terminal_write(text_buffer, bytes_read);
+	}
+	
+	terminal_close();
+}
 
 /* Test suite entry point */
 void launch_tests(){
-	// disable_irq(8);
+	disable_irq(8);
 	clear();
 
 	//TEST_OUTPUT("idt_test", idt_test());
@@ -161,11 +236,12 @@ void launch_tests(){
 
 	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
 
-	uint8_t text[120];
-	int bytes = terminal_read(text, 120);
-	text[119] = '\0';
 
+	/* CHECKPOINT 2 TESTS */
 
-	terminal_write(text, bytes);
+	// RTC Test
+	rtc_frequency_test();
 
+	// Keyboard Test
+	keyboard_test();
 }

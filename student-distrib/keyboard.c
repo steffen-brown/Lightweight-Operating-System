@@ -163,55 +163,98 @@ void keyboard_handler(void) {
         keyboard_index++; // Advance the keyboard buffer index
     }
 
-    send_eoi(1); // Send EOI for keyboard to the PIC
+    send_eoi(1); // Send EOI for keyboard to the PIC (IRQ 1)
 }
 
+/*
+ * terminal_read
+ *   DESCRIPTION: Reads a line from the terminal into a buffer. It waits for the enter key to be
+ *                pressed before copying the contents of the keyboard buffer into the provided buffer.
+ *   INPUTS: buffer - pointer to the buffer where the read characters should be stored
+ *           bytes - the maximum number of bytes to read into the buffer
+ *   OUTPUTS: none
+ *   RETURN VALUE: The number of characters read into the buffer, excluding the null terminator
+ *   SIDE EFFECTS: Blocks execution until the enter key is pressed
+ */
 int terminal_read(void* buffer, uint32_t bytes) {
-    if(bytes == 0) {
-        return 0;
+    if(bytes == 0) { // Check if the requested number of bytes to read is 0
+        return 0; // If yes, return 0 immediately
     }
 
-    enter_flag = 0;
+    enter_flag = 0; // Reset enter flag
 
     while(!enter_flag); // Wait for enter to be pressed
 
-    int end_flag = 0;
+    int end_flag = 0; // Flag to indicate the end of reading
 
-    uint8_t* output = (uint8_t*) buffer;
+    uint8_t* output = (uint8_t*) buffer; // Cast void pointer to uint8_t pointer for byte manipulation
 
-    int output_index = 0;
+    int output_index = 0; // Index to track the current position in the output buffer
     while (!end_flag && output_index < bytes) {
-        output[output_index] = keyboard_buffer[output_index];
-        if (keyboard_buffer[output_index] == '\0') {
-            end_flag = 1;
+        output[output_index] = keyboard_buffer[output_index]; // Copy from keyboard buffer to output buffer
+        if (keyboard_buffer[output_index] == '\0') { // Check for null terminator
+            end_flag = 1; // Set end flag if null terminator is found
         }
-        output_index++;
+        output_index++; // Increment index
     }
 
-    return output_index - 1;
+    if(keyboard_buffer[127] == '\n') { // If trying to read a full 128 character, account for the lack of early null terminator
+        output_index++;
+        keyboard_buffer[127] = '\0'; // Reset null terminator for future strings
+    }
+
+    return output_index - 1; // Return number of characters read, excluding the null terminator
 } 
 
-
+/*
+ * terminal_write
+ *   DESCRIPTION: Writes a sequence of bytes from a buffer to the terminal.
+ *   INPUTS: buffer - pointer to the buffer containing the bytes to write
+ *           bytes - number of bytes to write
+ *   OUTPUTS: none
+ *   RETURN VALUE: The number of bytes successfully written
+ *   SIDE EFFECTS: Outputs the contents of the buffer to the terminal
+ */
 int terminal_write(void* buffer, uint32_t bytes) {
-    uint8_t* input = (uint8_t*) buffer;
+    if (buffer == NULL || bytes == 0) { // Check for invalid buffer or request to write 0 bytes
+        return -1; // Return error code -1
+    }
 
-    int bytes_written = 0;
+    uint8_t* input = (uint8_t*) buffer; // Cast void pointer to uint8_t pointer for byte manipulation
+
+    int bytes_written = 0; // Counter for the number of bytes written
 
     int i;
-    for(i = 0; i < bytes; i++) {
-        putc(input[i]);
-        bytes_written++;
+    for(i = 0; i < bytes; i++) { // Iterate over each byte in the input buffer
+        putc(input[i]); // Write each byte to the terminal
+        bytes_written++; // Increment the written byte count
 
     }
 
-    return bytes_written;
+    return bytes_written; // Return the total number of bytes written
 
 }
 
+/*
+ * terminal_open
+ *   DESCRIPTION: Placeholder for opening the terminal, currently does nothing specific.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: -1 indicating that the function is not implemented
+ *   SIDE EFFECTS: None
+ */
 int terminal_open() {
-    return -1;
+    return 0;
 }
 
+/*
+ * terminal_close
+ *   DESCRIPTION: Placeholder for closing the terminal, currently does nothing specific.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: -1 indicating that the function is not implemented
+ *   SIDE EFFECTS: None
+ */
 int terminal_close() {
-    return -1;
+    return 0;
 }
