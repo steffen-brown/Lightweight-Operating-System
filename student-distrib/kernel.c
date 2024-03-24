@@ -57,6 +57,7 @@ void entry(unsigned long magic, unsigned long addr) {
         int mod_count = 0;
         int i;
         module_t* mod = (module_t*)mbi->mods_addr;
+        fileSystem_init((uint8_t*)mod->mod_start); // Initialize the file system    
         while (mod_count < mbi->mods_count) {
             printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
             printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
@@ -142,7 +143,6 @@ void entry(unsigned long magic, unsigned long addr) {
         tss.esp0 = 0x800000;
         ltr(KERNEL_TSS);
     }
-    fileSystem_init((uint8_t *)mbi->mods_addr);
     setup_kernel_paging(); // Map the kernal and video memory to pages
     enable_paging(); // Enable paging on the OS
 

@@ -17,6 +17,8 @@ void fileSystem_init(uint8_t *fs_start)
 {
     // Set global pointers to their respective locations in the file system memory
     g_boot_block = (boot_block_t *)fs_start;
+    // g_boot_block->num_dir_entries = MAX_FILES; // Set the number of directory entries to the maximum number of files
+    // g_boot_block->num_inodes = MAX_FILES;      // Set the number of inodes to the maximum number of files
     g_inodes = (inode_t *)(fs_start + BLOCK_SIZE);                                            // inodes start right after the boot block
     g_data_blocks = (data_block_t *)(fs_start + (1 + g_boot_block->num_inodes) * BLOCK_SIZE); // data blocks start right after bootblock + all inodes
 }
@@ -41,7 +43,7 @@ int32_t read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry)
         if (strncmp((const char *)fname, g_boot_block->dir_entries[i].name, MAX_FILE_NAME) == 0)
         {
             // If a match is found, copy the directory entry to the provided dentry structure
-            *dentry = g_boot_block->dir_entries[i];
+            read_dentry_by_index(i, dentry);
             return FS_SUCCESS;
         }
     }
@@ -66,7 +68,17 @@ int32_t read_dentry_by_index(uint32_t index, dir_entry_t *dentry)
         return FS_ERROR;
     }
     // Copy the directory entry at the provided index to the provided dentry structure
-    *dentry = g_boot_block->dir_entries[index];
+    // *dentry = g_boot_block->dir_entries[index]; wrong!!
+    uint8_t i;
+    // Copy the directory entry at the provided index to the provided dentry structure
+    dentry->file_type = g_boot_block->dir_entries[index].file_type;
+    dentry->inode_num = g_boot_block->dir_entries[index].inode_num;
+    for(i = 0; i < MAX_FILE_NAME; i++){
+        dentry->name[i] = g_boot_block->dir_entries[index].name[i];
+    }
+    for ( i = 0; i < 24; i++){
+        dentry->reserved[i] = g_boot_block->dir_entries[index].reserved[i];
+    }
     return FS_SUCCESS;
 }
 
@@ -80,26 +92,32 @@ int32_t read_dentry_by_index(uint32_t index, dir_entry_t *dentry)
  */
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length)
 {
+
     // Check if inode is valid
     if (inode < 0 || inode >= g_boot_block->num_inodes)
     {
         return -1; // Return error if inode number is invalid
     }
 
-    // // Adjust length to avoid reading past the end of the file
-    // if (length > file_inode->size - offset)
-    // {
-    //     length = file_inode->size - offset;
-    // }
+    inode_t *file_inode = &g_inodes[inode]; // Get the inode for the file
 
-    // uint32_t bytes_read = 0;
-    // uint32_t block_index = offset / BLOCK_SIZE;
-    // uint32_t i;
+    // Adjust length to avoid reading past the end of the file
+    if (length > file_inode->size - offset)
+    {
+        length = file_inode->size - offset;
+    }
+
+    uint32_t bytes_read = 0;
+    uint32_t block_index = offset / BLOCK_SIZE;
+    uint32_t i;
     // // Iterate through each block
-    // for (i = block_index; i <= (length + offset) / BLOCK_SIZE; i++)
-    // {
-    //     // Calculate the number of bytes to copy in this iteration
-    //     uint32_t nbytes = min(BLOCK_SIZE - (offset % BLOCK_SIZE), length - bytes_read);
+    for (i = block_index; i <= block_index + length; i++)
+    {
+        // Calculate the number of bytes to copy in this iteration
+        uint32_t bytes_to_copy = BLOCK_SIZE - (offset % BLOCK_SIZE);
+        if ( length < BLOCK_SIZE ) {
+            bytes_to_copy = length;
+        }
         
     //     // Ensure the block number is valid
     //     if (file_inode->blocks[i] >= g_boot_block->num_data_blocks)
@@ -108,16 +126,16 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
     //     }
 
     //     // Copy data from block to buffer
-    //     data_block_t *data_block = &g_data_blocks[file_inode->blocks[i]];
-    //     memcpy(buf + bytes_read, data_block->data + (offset % BLOCK_SIZE), nbytes);
+        data_block_t *data_block = &g_data_blocks[file_inode->blocks[i]];
+        memcpy(buf + bytes_read, (uint8_t*)data_block + (offset % BLOCK_SIZE), bytes_to_copy);
 
     //     // Update the total number of bytes read
-    //     bytes_read += nbytes;
-    //     offset = 0; // Reset offset for the next block
-    // }
+        length -= bytes_to_copy;
+        bytes_read += bytes_to_copy;
+        offset = 0; // Reset offset for the next block
+    }
 
-    // return bytes_read; // Return the total number of bytes read
-    return 0;
+    return bytes_read; // Return the total number of bytes read
 }
 
 // -----------------Core Driver Functions (for directory and file)--------------------
@@ -125,36 +143,38 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
 
 /*
  * dir_read
- *   DESCRIPTION: Read files filename by filename, including “.”
- *   INPUTS: TODO
+ *   DESCRIPTION: Read each file name in the directory
+ *   INPUTS: fd: file descriptor index
+ *         buf: buffer to populate with file names
+ *         nbytes: number of bytes to read   
  *   OUTPUTS: TODO
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
-{
-    int dir_idx, name_idx;
-    for(dir_idx = 0; dir_idx < g_boot_block->num_dir_entries; dir_idx++) {
-        dir_entry_t dentry = g_boot_block->dir_entries[dir_idx];
-        if (read_dentry_by_index(dir_idx, &dentry) != -1) {
-            for (name_idx = 0; name_idx < MAX_FILE_NAME; name_idx++) {
-                printf("%c", dentry.name[name_idx]);
-            }
-            printf("\n");
+// int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
+// {
+//     int dir_idx, name_idx;
+//     for(dir_idx = 0; dir_idx < g_boot_block->num_dir_entries; dir_idx++) {
+//         dir_entry_t dentry = g_boot_block->dir_entries[dir_idx];
+//         if (read_dentry_by_index(dir_idx, &dentry) != -1) {
+//             for (name_idx = 0; name_idx < MAX_FILE_NAME; name_idx++) {
+//                 printf("%c", dentry.name[name_idx]);
+//             }
+//             printf("\n");
 
-            printf("dir_read SUCCESS");
+//             printf("dir_read SUCCESS");
 
-            return FS_SUCCESS;
-        }
-        else {
-            printf("dir_read SUCCESS");
+//             return FS_SUCCESS;
+//         }
+//         else {
+//             printf("dir_read SUCCESS");
 
-            return FS_ERROR;
-        }
-    }
-    printf("dir_read SUCCESS");
-    return FS_SUCCESS;
-}
+//             return FS_ERROR;
+//         }
+//     }
+//     printf("dir_read SUCCESS");
+//     return FS_SUCCESS;
+// }
 
 
 /*
@@ -179,16 +199,16 @@ int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes)
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-int32_t dir_open(const uint8_t *filename)
-{
-    dir_entry_t* dentry;
-    if (read_dentry_by_name(filename, dentry) != -1) {
-        printf("dir_open SUCCESS");
-        return FS_SUCCESS;
-    }
-    printf("dir_open FAILURE");
-    return FS_ERROR;
-}
+// int32_t dir_open(const uint8_t *filename)
+// {
+//     dir_entry_t* dentry;
+//     if (read_dentry_by_name(filename, dentry) != -1) {
+//         printf("dir_open SUCCESS");
+//         return FS_SUCCESS;
+//     }
+//     printf("dir_open FAILURE");
+//     return FS_ERROR;
+// }
 
 
 /*
@@ -213,27 +233,28 @@ int32_t dir_close(int32_t fd)
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
-{
-    if (buf == NULL || nbytes < 0) return FS_ERROR; // Error check 1
+// int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
+// {
+//     if (buf == NULL || nbytes < 0) return FS_ERROR; // Error check 1
     
-    // TODO: IDK how to get this pointer and offset
-    uint32_t inode_ptr = pcb->fd_arr[fd]->inode;
-    uint32_t offset = pcb->fd_arr[fd]->position;
-    int32_t transfer_size = read_data(inode_ptr, offset, buf, nbytes);
-    if (transfer_size >= 0 && transfer_size <= nbytes){ // Error check 2: Incorrect/invalid number of bytes transferred
-        // TODO: update file cursor line
-        pcb->fd_arr[fd]->position += transfer_size;
+//     // TODO: IDK how to get this pointer and offset
+//     uint32_t inode_ptr = pcb->fd_arr[fd]->inode;
+//     inode_t* inode = &g_inodes[inode_ptr];
+//     uint32_t offset = pcb->fd_arr[fd]->position;
+//     int32_t transfer_size = read_data(inode_ptr, offset, buf, nbytes);
+//     if (transfer_size >= 0 && transfer_size <= nbytes){ // Error check 2: Incorrect/invalid number of bytes transferred
+//         // TODO: update file cursor line
+//         pcb->fd_arr[fd]->position += transfer_size;
 
-        printf("file_read SUCCESS");
+//         printf("file_read SUCCESS");
 
-        return transfer_size;
-    }
+//         return transfer_size;
+//     }
 
-    printf("file_read FAILURE");
+//     printf("file_read FAILURE");
 
-    return FS_ERROR;
-}
+//     return FS_ERROR;
+// }
 
 
 /*
@@ -266,28 +287,28 @@ int32_t file_open(const uint8_t *filename)
     // }
 
     dir_entry_t* dentry;
-    // return read_dentry_by_name(filename, dentry);
-    if (read_dentry_by_name(filename, dentry) != -1){
-        // Check if file is not open (slot available to open)
-        if (pcb->fd_arr[2]->flags == FD_AVAILABLE) {
-            file_desc_t* fd;
-            fd->flags = FD_ACTIVE;
-            fd->position = 0;
-            fd->inode = dentry->inode_num;
-            pcb->fd_arr[2] = fd;
+    int32_t fd;
 
-            printf("file_open SUCCESS");
-
-            return FS_SUCCESS;
-        }
-        else {
-            printf("file_open FAILURE A file is open");
-            return FS_ERROR;
+    int32_t i;
+    for ( i = 0; i < 8; i++){
+        if (fd_arr[i].flags == FD_AVAILABLE){
+            fd = i;
+            break;
         }
     }
-    printf("file_open FAILURE");
-    return FS_ERROR;
+    if (read_dentry_by_name(filename, dentry) != -1){
+        // Check if file is not open (slot available to open)
+            fd_arr[fd].flags = FD_ACTIVE;
+            fd_arr[fd].position = 0;
+            fd_arr[fd].inode = dentry->inode_num;
+            // printf("file_open SUCCESS");
+            return fd;
+    }
+    else {
+        return FS_ERROR;
+    }
 }
+    
 
 
 /*
@@ -298,7 +319,8 @@ int32_t file_open(const uint8_t *filename)
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-int32_t file_close(int32_t fd)
-{
-    return FS_SUCCESS;
-}
+// int32_t file_close(int32_t fd)
+// {
+//     pcb->fd_arr[2]->flags = FD_AVAILABLE;
+//     return FS_SUCCESS;
+// }

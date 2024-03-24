@@ -10,7 +10,7 @@
 #define MAX_OPEN_FILES 8                                        // Maximum number of open files per task
 #define DIR_ENTRY_SIZE 64                                       // Directory entry size in bytes
 #define BOOT_BLOCK_RESERVED 52                                  // Reserved bytes in the boot block
-#define INODE_DATA_BLOCKS ((BLOCK_SIZE / sizeof(uint32_t)) - 4) // Adjust for inode structure size
+#define INODE_DATA_BLOCKS ((BLOCK_SIZE / sizeof(uint32_t)) - 1) // Adjust for inode structure size
 
 // File types
 #define FILE_TYPE_RTC 0
@@ -29,7 +29,7 @@
 // Directory entry structure
 typedef struct
 {
-    char name[MAX_FILE_NAME]; // File name
+    uint8_t name[MAX_FILE_NAME]; // File name
     uint8_t file_type;        // File type
     uint8_t reserved[24];     // Reserved space to fill the structure to 64 bytes
     uint32_t inode_num;       // Inode number
@@ -70,12 +70,15 @@ typedef struct
 } data_block_t;
 
 // Process control block (PCB) structure
-typedef struct
-{
-    file_desc_t* fd_arr[8]; // (Max 8) active files
-    int32_t active[8];
-} pcb_t;
-pcb_t* pcb; // initialize struct
+// typedef struct
+// {
+//     file_desc_t* fd_arr[8]; // (Max 8) active files
+//     int32_t active[8];
+// } pcb_t;
+// pcb_t* pcb; // initialize struct
+
+file_desc_t fd_arr[8]; // (Max 8) active files
+
 // int i;
 // for(i = 0; i < 8; i++){
 //     pcb->fd_arr[i].active = -1;

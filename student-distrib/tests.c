@@ -159,7 +159,7 @@ void launch_tests(){
 
 	/* Syscall and Keyboard Echo Testing*/
 
-	syscall_test(); // Test int x80 (Also can do keyboard echoing)
+	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
 
 	// uint8_t text[120];
 	// int bytes = terminal_read(text, 120);
@@ -167,7 +167,7 @@ void launch_tests(){
 
 
 	// terminal_write(text, bytes);
-	// file_open_test_pos();
+	file_open_test_pos();
 	// file_open_test_neg();
 
 }
@@ -175,9 +175,9 @@ void launch_tests(){
 /* Checkpoint 2 tests */
 // File open test
 int file_open_test_pos(){
-	TEST_HEADER;
-	int32_t fd = file_open((uint8_t*)"frame0.txt");
-	if(fd == -1){
+	// TEST_HEADER;
+	int32_t ret = file_open((uint8_t*)"frame0.txt");
+	if(ret == -1){
 		printf("File open failed\n");
 		return FAIL;
 	}
