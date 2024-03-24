@@ -4,7 +4,7 @@
 #include "i8259.h"
 #include "RTC.h"
 #include "keyboard.h"
-
+#include "file_sys.h"
 #define PASS 1
 #define FAIL 0
 
@@ -159,13 +159,49 @@ void launch_tests(){
 
 	/* Syscall and Keyboard Echo Testing*/
 
-	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
+	syscall_test(); // Test int x80 (Also can do keyboard echoing)
 
-	uint8_t text[120];
-	int bytes = terminal_read(text, 120);
-	text[119] = '\0';
+	// uint8_t text[120];
+	// int bytes = terminal_read(text, 120);
+	// text[119] = '\0';
 
 
-	terminal_write(text, bytes);
+	// terminal_write(text, bytes);
+	// file_open_test_pos();
+	// file_open_test_neg();
 
 }
+
+/* Checkpoint 2 tests */
+// File open test
+int file_open_test_pos(){
+	TEST_HEADER;
+	int32_t fd = file_open((uint8_t*)"frame0.txt");
+	if(fd == -1){
+		printf("File open failed\n");
+		return FAIL;
+	}
+	printf("File open success\n");
+	return PASS;
+}
+
+int file_open_test_neg(){
+	TEST_HEADER;
+	int32_t fd = file_open((uint8_t*)"sad.txt");
+	if(fd != -1){
+		printf("File open failed\n");
+		return FAIL;
+	}
+	printf("File open success\n");
+	return PASS;
+}
+
+
+// File close test
+// file read test
+// file write test
+// dir read test
+// dir write test
+// dir open test
+// dir close test
+

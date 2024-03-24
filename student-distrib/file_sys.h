@@ -4,8 +4,8 @@
 #include "lib.h"
 
 // Constants
-#define BLOCK_SIZE 4096                                         // Block size in bytes
-#define MAX_FILES 63                                            // Maximum number of directory entries
+#define BLOCK_SIZE 4096                                         // Block size in bytes (4kB)
+#define MAX_FILES 63                                            // Maximum number of files (excluding directory entry)
 #define MAX_FILE_NAME 32                                        // Maximum file name length
 #define MAX_OPEN_FILES 8                                        // Maximum number of open files per task
 #define DIR_ENTRY_SIZE 64                                       // Directory entry size in bytes
@@ -21,6 +21,20 @@
 #define FS_SUCCESS 0
 #define FS_ERROR -1
 
+// File descriptor flags
+#define FD_ERROR     -1
+#define FD_AVAILABLE  0
+#define FD_ACTIVE     1
+
+// Directory entry structure
+typedef struct
+{
+    char name[MAX_FILE_NAME]; // File name
+    uint8_t file_type;        // File type
+    uint8_t reserved[24];     // Reserved space to fill the structure to 64 bytes
+    uint32_t inode_num;       // Inode number
+} dir_entry_t;
+
 // Boot block structure
 typedef struct
 {
@@ -31,14 +45,7 @@ typedef struct
     dir_entry_t dir_entries[MAX_FILES];    // Directory entries
 } boot_block_t;
 
-// Directory entry structure
-typedef struct
-{
-    char name[MAX_FILE_NAME]; // File name
-    uint8_t file_type;        // File type
-    uint8_t reserved[24];     // Reserved space to fill the structure to 64 bytes
-    uint32_t inode_num;       // Inode number
-} dir_entry_t;
+
 
 // Inode structure (for regular files)
 typedef struct
@@ -62,9 +69,32 @@ typedef struct
     uint8_t data[BLOCK_SIZE]; // Data block
 } data_block_t;
 
+// Process control block (PCB) structure
+typedef struct
+{
+    file_desc_t* fd_arr[8]; // (Max 8) active files
+    int32_t active[8];
+} pcb_t;
+pcb_t* pcb; // initialize struct
+// int i;
+// for(i = 0; i < 8; i++){
+//     pcb->fd_arr[i].active = -1;
+// }
+
 // Function prototypes for file system operations
-int32_t read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry);
-int32_t read_dentry_by_index(uint32_t index, dir_entry_t *dentry);
-int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length);
+int read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry);
+int read_dentry_by_index(uint32_t index, dir_entry_t *dentry);
+int read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length);
+
+// Prototypes for file system abstractions
+int32_t dir_read(int32_t fd, void *buf, int32_t nbytes);
+int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes);
+int32_t dir_open(const uint8_t *filename);
+int32_t dir_close(int32_t fd);
+int32_t file_read(int32_t fd, void *buf, int32_t nbytes);
+int32_t file_write(int32_t fd, const void *buf, int32_t nbytes);
+int32_t file_open(const uint8_t *filename);
+int32_t file_close(int32_t fd);
+
 
 #endif // FILE_SYS_H
