@@ -44,7 +44,7 @@ int32_t read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry)
         {
             // If a match is found, copy the directory entry to the provided dentry structure
             read_dentry_by_index(i, dentry);
-            return FS_SUCCESS;
+            return i;
         }
     }
     // Return error if the name is not found
@@ -106,33 +106,29 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
     {
         length = file_inode->size - offset;
     }
-
+    uint32_t block_index; 
+    uint32_t offset_from_block; // in bytes
     uint32_t bytes_read = 0;
-    uint32_t block_index = offset / BLOCK_SIZE;
     uint32_t i;
     // // Iterate through each block
-    for (i = block_index; i <= block_index + length; i++)
+    for (i = offset; i < offset + length; i++)
     {
-        // Calculate the number of bytes to copy in this iteration
-        uint32_t bytes_to_copy = BLOCK_SIZE - (offset % BLOCK_SIZE);
-        if ( length < BLOCK_SIZE ) {
-            bytes_to_copy = length;
+
+        block_index = i / BLOCK_SIZE;
+        offset_from_block = i % BLOCK_SIZE;
+     
+        // Ensure the block number is valid
+        if (file_inode->blocks[block_index] >= g_boot_block->num_data_blocks)
+        {
+            break; // Invalid block number, stop reading
         }
-        
-    //     // Ensure the block number is valid
-    //     if (file_inode->blocks[i] >= g_boot_block->num_data_blocks)
-    //     {
-    //         break; // Invalid block number, stop reading
-    //     }
 
-    //     // Copy data from block to buffer
-        data_block_t *data_block = &g_data_blocks[file_inode->blocks[i]];
-        memcpy(buf + bytes_read, (uint8_t*)data_block + (offset % BLOCK_SIZE), bytes_to_copy);
+    //     // Copy data from block to buffer ( 1 byte at a time)
+        data_block_t *data_block = &g_data_blocks[file_inode->blocks[block_index]];
+        memcpy(buf + bytes_read, (uint8_t*)data_block + offset_from_block, 1);
 
-    //     // Update the total number of bytes read
-        length -= bytes_to_copy;
-        bytes_read += bytes_to_copy;
-        offset = 0; // Reset offset for the next block
+    // Update the total number of bytes read
+        bytes_read += 1;
     }
 
     return bytes_read; // Return the total number of bytes read
@@ -199,16 +195,16 @@ int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes)
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-// int32_t dir_open(const uint8_t *filename)
-// {
-//     dir_entry_t* dentry;
-//     if (read_dentry_by_name(filename, dentry) != -1) {
-//         printf("dir_open SUCCESS");
-//         return FS_SUCCESS;
-//     }
-//     printf("dir_open FAILURE");
-//     return FS_ERROR;
-// }
+int32_t dir_open(const uint8_t *filename)
+{
+    dir_entry_t* dentry;
+    if (read_dentry_by_name(filename, dentry) != -1) {
+        printf("dir_open SUCCESS");
+        return FS_SUCCESS;
+    }
+    printf("dir_open FAILURE");
+    return FS_ERROR;
+}
 
 
 /*
@@ -233,28 +229,18 @@ int32_t dir_close(int32_t fd)
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-// int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
-// {
-//     if (buf == NULL || nbytes < 0) return FS_ERROR; // Error check 1
+int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
+{
     
-//     // TODO: IDK how to get this pointer and offset
-//     uint32_t inode_ptr = pcb->fd_arr[fd]->inode;
-//     inode_t* inode = &g_inodes[inode_ptr];
-//     uint32_t offset = pcb->fd_arr[fd]->position;
-//     int32_t transfer_size = read_data(inode_ptr, offset, buf, nbytes);
-//     if (transfer_size >= 0 && transfer_size <= nbytes){ // Error check 2: Incorrect/invalid number of bytes transferred
-//         // TODO: update file cursor line
-//         pcb->fd_arr[fd]->position += transfer_size;
-
-//         printf("file_read SUCCESS");
-
-//         return transfer_size;
-//     }
-
-//     printf("file_read FAILURE");
-
-//     return FS_ERROR;
-// }
+    // TODO: IDK how to get this pointer and offset
+    uint32_t inode_ptr = g_boot_block->dir_entries[fd].inode_num;
+    uint32_t offset = 0;
+    int32_t transfer_size = read_data(inode_ptr, offset, buf, nbytes);
+    if (transfer_size != -1) {
+        return FS_SUCCESS;
+    }
+    return FS_ERROR;
+}
 
 
 /*
@@ -270,7 +256,6 @@ int32_t file_write(int32_t fd, const void *buf, int32_t nbytes)
     return FS_ERROR; // Return error (files are read-only)
 }
 
-
 /*
  * file_open
  *   DESCRIPTION: Initialize any temporary structures, return 0
@@ -281,33 +266,18 @@ int32_t file_write(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t file_open(const uint8_t *filename)
 {
-    // EDGE CASE
-    // if (strncmp((const int8_t *)filename, (const int8_t*)"", 1) == 0){
-    //     return FS_ERROR;
-    // }
 
     dir_entry_t dentry;
-    int32_t fd;
-
-    int32_t i;
-    for ( i = 0; i < 8; i++){
-        if (fd_arr[i].flags == FD_AVAILABLE){
-            fd = i;
-            break;
-        }
-    }
-    if (read_dentry_by_name(filename, &dentry) != -1){
-        // Check if file is not open (slot available to open)
-            fd_arr[fd].flags = FD_ACTIVE;
-            fd_arr[fd].position = 0;
-            fd_arr[fd].inode = dentry.inode_num;
-            // printf("file_open SUCCESS");
-            return fd;
+    uint32_t ret = read_dentry_by_name(filename, &dentry);
+    if (ret != -1){
+            return ret;
     }
     else {
         return FS_ERROR;
     }
+
 }
+
     
 
 
@@ -319,8 +289,7 @@ int32_t file_open(const uint8_t *filename)
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-// int32_t file_close(int32_t fd)
-// {
-//     pcb->fd_arr[2]->flags = FD_AVAILABLE;
-//     return FS_SUCCESS;
-// }
+int32_t file_close(int32_t fd)
+{
+    return FS_SUCCESS;
+}

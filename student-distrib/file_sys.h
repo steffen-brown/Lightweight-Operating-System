@@ -77,7 +77,7 @@ typedef struct
 // } pcb_t;
 // pcb_t* pcb; // initialize struct
 
-file_desc_t fd_arr[8]; // (Max 8) active files
+// file_desc_t fd_arr[8]; // (Max 8) active files
 
 // int i;
 // for(i = 0; i < 8; i++){

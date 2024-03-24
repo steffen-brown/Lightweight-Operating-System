@@ -167,15 +167,15 @@ void launch_tests(){
 
 
 	// terminal_write(text, bytes);
-	file_open_test_pos();
-	// file_open_test_neg();
+	// file_open_test_pos();
+	file_open_test_neg();
 
 }
 
 /* Checkpoint 2 tests */
 // File open test
 int file_open_test_pos(){
-	// TEST_HEADER;
+	TEST_HEADER;
 	int32_t ret = file_open((uint8_t*)"frame0.txt");
 	if(ret == -1){
 		printf("File open failed\n");
@@ -187,8 +187,8 @@ int file_open_test_pos(){
 
 int file_open_test_neg(){
 	TEST_HEADER;
-	int32_t fd = file_open((uint8_t*)"sad.txt");
-	if(fd != -1){
+	int32_t ret = file_open((uint8_t*)"sad.txt");
+	if(ret == -1){
 		printf("File open failed\n");
 		return FAIL;
 	}
@@ -196,6 +196,22 @@ int file_open_test_neg(){
 	return PASS;
 }
 
+int file_read_test(){
+	TEST_HEADER;
+	int32_t ret = file_open((uint8_t*)"frame0.txt");
+	if(ret == -1){
+		printf("File open failed\n");
+		return FAIL;
+	}
+	uint8_t buf[10000];
+	ret = file_read(ret, buf, 100);
+	if(ret == -1){
+		printf("File read failed\n");
+		return FAIL;
+	}
+	printf("File read success\n");
+	return PASS;
+}
 
 // File close test
 // file read test
