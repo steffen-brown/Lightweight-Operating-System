@@ -151,30 +151,30 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
  *   RETURN VALUE: TODO
  *   SIDE EFFECTS: TODO
  */
-// int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
-// {
-//     int dir_idx, name_idx;
-//     for(dir_idx = 0; dir_idx < g_boot_block->num_dir_entries; dir_idx++) {
-//         dir_entry_t dentry = g_boot_block->dir_entries[dir_idx];
-//         if (read_dentry_by_index(dir_idx, &dentry) != -1) {
-//             for (name_idx = 0; name_idx < MAX_FILE_NAME; name_idx++) {
-//                 printf("%c", dentry.name[name_idx]);
-//             }
-//             printf("\n");
+int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
+{
+    int dir_idx, name_idx;
+    for(dir_idx = 0; dir_idx < g_boot_block->num_dir_entries; dir_idx++) {
+        dir_entry_t dentry = g_boot_block->dir_entries[dir_idx];
+        if (read_dentry_by_index(dir_idx, &dentry) != -1) {
+            for (name_idx = 0; name_idx < MAX_FILE_NAME; name_idx++) {
+                printf("%c", dentry.name[name_idx]);
+            }
+            printf("\n");
 
-//             printf("dir_read SUCCESS");
+            printf("dir_read SUCCESS");
 
-//             return FS_SUCCESS;
-//         }
-//         else {
-//             printf("dir_read SUCCESS");
+            return FS_SUCCESS;
+        }
+        else {
+            printf("dir_read SUCCESS");
 
-//             return FS_ERROR;
-//         }
-//     }
-//     printf("dir_read SUCCESS");
-//     return FS_SUCCESS;
-// }
+            return FS_ERROR;
+        }
+    }
+    printf("dir_read SUCCESS");
+    return FS_SUCCESS;
+}
 
 
 /*
@@ -286,7 +286,7 @@ int32_t file_open(const uint8_t *filename)
     //     return FS_ERROR;
     // }
 
-    dir_entry_t* dentry;
+    dir_entry_t dentry;
     int32_t fd;
 
     int32_t i;
@@ -296,11 +296,11 @@ int32_t file_open(const uint8_t *filename)
             break;
         }
     }
-    if (read_dentry_by_name(filename, dentry) != -1){
+    if (read_dentry_by_name(filename, &dentry) != -1){
         // Check if file is not open (slot available to open)
             fd_arr[fd].flags = FD_ACTIVE;
             fd_arr[fd].position = 0;
-            fd_arr[fd].inode = dentry->inode_num;
+            fd_arr[fd].inode = dentry.inode_num;
             // printf("file_open SUCCESS");
             return fd;
     }
