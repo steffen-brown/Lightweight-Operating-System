@@ -1,9 +1,6 @@
 #include "file_sys.h"
 
-// Global pointers for the file system
-boot_block_t *g_boot_block;
-inode_t *g_inodes;
-data_block_t *g_data_blocks;
+
 
 /*
  * fileSystem_init
@@ -149,29 +146,52 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
  */
 int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
 {
-    int dir_idx, name_idx;
-    for(dir_idx = 0; dir_idx < g_boot_block->num_dir_entries; dir_idx++) {
-        dir_entry_t dentry = g_boot_block->dir_entries[dir_idx];
-        if (read_dentry_by_index(dir_idx, &dentry) != -1) {
-            for (name_idx = 0; name_idx < MAX_FILE_NAME; name_idx++) {
-                printf("%c", dentry.name[name_idx]);
-            }
-            printf("\n");
-
-            printf("dir_read SUCCESS");
-
-            return FS_SUCCESS;
-        }
-        else {
-            printf("dir_read SUCCESS");
-
-            return FS_ERROR;
-        }
+    dir_entry_t dentry;
+    int32_t ret = read_dentry_by_index(fd, &dentry);
+    if (ret == FS_ERROR)
+    {
+        return FS_ERROR;
     }
-    printf("dir_read SUCCESS");
+    uint32_t i;
+    
+    // add file name, file type and size to buffer with File Name: File Type: File Size labels
+    for ( i = 0; i < MAX_FILE_NAME; i++)
+    {
+        if (dentry.name[i] == '\0')
+        {
+            break;
+        }
+        ((uint8_t *)buf)[i] = dentry.name[i];
+    }
+    // ((uint32_t *)buf)[MAX_FILE_NAME] = dentry.file_type;
+    // ((uint32_t *)buf)[MAX_FILE_NAME + 4] = g_inodes[dentry.inode_num].size;
     return FS_SUCCESS;
-}
+    
 
+    // Check if the file descriptor index is valid
+
+}
+ 
+// function to get file type
+int32_t get_file_type(int32_t fd){
+    dir_entry_t dentry;
+    int32_t ret = read_dentry_by_index(fd, &dentry);
+    if (ret == FS_ERROR)
+    {
+        return FS_ERROR;
+    }
+    return dentry.file_type;
+}
+// function to get file size
+int32_t get_file_size(int32_t fd){
+    dir_entry_t dentry;
+    int32_t ret = read_dentry_by_index(fd, &dentry);
+    if (ret == FS_ERROR)
+    {
+        return FS_ERROR;
+    }
+    return g_inodes[dentry.inode_num].size;
+}
 
 /*
  * dir_write
@@ -232,10 +252,10 @@ int32_t dir_close(int32_t fd)
 int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
 {
     
-    // TODO: IDK how to get this pointer and offset
     uint32_t inode_ptr = g_boot_block->dir_entries[fd].inode_num;
+    uint32_t file_size = g_inodes[inode_ptr].size; // size in bytes
     uint32_t offset = 0;
-    int32_t transfer_size = read_data(inode_ptr, offset, buf, nbytes);
+    int32_t transfer_size = read_data(inode_ptr, offset, buf, file_size);
     if (transfer_size != -1) {
         return FS_SUCCESS;
     }

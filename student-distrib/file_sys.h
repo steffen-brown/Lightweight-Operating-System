@@ -12,6 +12,7 @@
 #define BOOT_BLOCK_RESERVED 52                                  // Reserved bytes in the boot block
 #define INODE_DATA_BLOCKS ((BLOCK_SIZE / sizeof(uint32_t)) - 1) // Adjust for inode structure size
 
+
 // File types
 #define FILE_TYPE_RTC 0
 #define FILE_TYPE_DIR 1
@@ -30,9 +31,9 @@
 typedef struct
 {
     uint8_t name[MAX_FILE_NAME]; // File name
-    uint8_t file_type;        // File type
-    uint8_t reserved[24];     // Reserved space to fill the structure to 64 bytes
+    uint32_t file_type;        // File type
     uint32_t inode_num;       // Inode number
+    uint8_t reserved[24];     // Reserved space to fill the structure to 64 bytes
 } dir_entry_t;
 
 // Boot block structure
@@ -99,5 +100,9 @@ int32_t file_write(int32_t fd, const void *buf, int32_t nbytes);
 int32_t file_open(const uint8_t *filename);
 int32_t file_close(int32_t fd);
 
+// Global pointers for the file system
+boot_block_t *g_boot_block;
+inode_t *g_inodes;
+data_block_t *g_data_blocks;
 
 #endif // FILE_SYS_H
