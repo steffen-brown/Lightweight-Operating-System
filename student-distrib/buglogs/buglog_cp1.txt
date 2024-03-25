@@ -1,0 +1,46 @@
+Component: IDT - set_IDT_entry_metadata(idt_desc_t* entry, int type)
+File: interrupts.c
+Bug: When the IDT is loaded in, the system proceeds to almost immediately run into Exception 13 following boot. When configuring IDT entry bits for type, the function tasked with doing that reversed the 4 designated bits.
+Correction: Reverse the order of bit assignments fro reserved3, reserved2, reserved1, and size.
+Explanation: The machine was running into an exception because the type of all entries in the IDT was invalid and did not properly set up exceptions nor interrupt handlers.
+
+
+Component: IDT Assembly Linkage - INT_LINKAGE(function_name, handler, vector, has_error_code)
+File: x86_desc.h
+Bug: The linkage macro did not include any mechanism to pop the error codes from the stack for exceptions that put them there. This lead to stack misalignment, causing the system to effectively crash.
+Correction: Add a parameter to the macro that specifies the dynamic number of byte to pop off at the end of the routine.
+New Line: addl $has_error_code, %esp  ;\
+Explanation: When linkage for an exception with an error code pushed is created, this now allows the function to dynamically pop off an additional 4 bytes. Otherwise, the has_error_code parameter can be set to zero, effectively nullifying this line.
+
+
+Component: Paging - enable_paging_bit()
+File: x86_desc.S
+Bug: Upon enabling paging, the system proceed to immediately crash and close qemu.
+Correction: It is essential to set the Page Size Extension bit in Register CR4 to 1 prior to enabling paging.
+Explanation: Without specifying the page extension bit value, the system doesn’t know how to properly evaluate the bits for certain paging descriptor table entries.
+
+
+Component: Paging - setup_kernel_paging()
+File: paging.c
+Bug: The system proceeds to boot loop upon enabling paging. For the paging descriptor table entry for the 4 MBs of virtual memory, the address was incorrectly points to the physical memory address of the video memory from the top of the page.
+Incorrect Line: first_mb.address = 0xB8;
+Correction: The aforementioned page directory entry address must point to the top of the page table for the first 4MBs
+Corrected Line: first_mb.address = (uint32_t)pt0 >> 12;
+Explanation: Without properly specifying the memory address of the appropriate page table, the system doesn’t know where to find it.
+
+
+Component: RTC - RTC_handler()
+File: RTC.c
+Bug: The RTC interrupts and properly calls the handler once, but it does not proceed to interrupt any further.
+Correction: The RTC CMOS component expects Register C to be read before it will make any more interrupts.
+New Lines: outb(0x0C, RTC_cmd);
+	       inb(RTC_data);
+Explanation: Since the interrupt just indicates that the RTC is read to be services and does not actually do the servicing, it is important to read from the appropriate register to unlock the RTC.
+
+
+Component: PIC - send_eoi(uint32_t irq_num)
+File: i8259.c
+Bug: When an interrupts EOI is triggered for a irq of 8 or greater, the PIC does not seem to clear the mask that’s preventing future interrupts from all two devices.
+Correction: In addition to ending an EOI to the secondary PIC, you must also send EOI to the Primary PIC for IRQ 2.
+New Line: outb(EOI + 2, MASTER_8259_PORT);
+Explanation: Since the Primary PIC is ultimately what sends the interrupt signal to the processor from the Secondary PIC (through IRQ 2), it must also get told that the interrupt routine has ended.
