@@ -3,7 +3,7 @@
 // Directory of letters assocated with each scan code for lowercase
 char scan_codes_table[SCAN_CODES] = {
     NULL, NULL, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', NULL,      
-    ' ', 'q', 'w', 'e', 'r', 't', 'y', 'u',  'i', 'o', 'p', '[', ']', NULL,
+    NULL, 'q', 'w', 'e', 'r', 't', 'y', 'u',  'i', 'o', 'p', '[', ']', NULL,
     NULL, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', NULL, '\\',     
     'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', NULL,
     NULL, NULL, ' ',
@@ -12,7 +12,7 @@ char scan_codes_table[SCAN_CODES] = {
 // Directory of letters assocated with each scan code for shifted
 char scan_codes_table_shift[SCAN_CODES] = {
     NULL, NULL, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', NULL,      
-    ' ', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U',  'I', 'O', 'P', '{', '}', NULL,
+    NULL, 'Q', 'W', 'E', 'R', 'T', 'Y', 'U',  'I', 'O', 'P', '{', '}', NULL,
     NULL, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~', NULL, '|',     
     'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', NULL,
     NULL, NULL, ' ',
@@ -21,7 +21,7 @@ char scan_codes_table_shift[SCAN_CODES] = {
 // Directory of letters assocated with each scan code for caps lock
 char scan_codes_table_caps[SCAN_CODES] = {
     NULL, NULL, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', NULL,      
-    ' ', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U',  'I', 'O', 'P', '[', ']', NULL,
+    NULL, 'Q', 'W', 'E', 'R', 'T', 'Y', 'U',  'I', 'O', 'P', '[', ']', NULL,
     NULL, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', '`', NULL, '\\',   
     'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', NULL,
     NULL, NULL, ' ',
@@ -114,17 +114,49 @@ void keyboard_handler(void) {
         clear();
     }
 
-    if (scan_code == TAB && keyboard_index + 1 < BUFFER_SIZE) { // handles extra space when tab is pressed
-        if (keyboard_index + 2 < BUFFER_SIZE) {
-            keyboard_buffer[keyboard_index] = scan_codes_table[scan_code];
-            putc(keyboard_buffer[keyboard_index]);
+    if (scan_code == TAB && keyboard_index + 4 < BUFFER_SIZE) { // handles extra space when tab is pressed
+            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
+                keyboard_buffer[keyboard_index] = '\n';
+                putc('\n');
+                keyboard_index++;
+                newline_flag = 1;
+            }
+            keyboard_buffer[keyboard_index] = '\t';
+            putc(' ');
             keyboard_index++;
-        }
-        if (keyboard_index + 2 < BUFFER_SIZE) {
-            keyboard_buffer[keyboard_index] = scan_codes_table[scan_code];
-            putc(keyboard_buffer[keyboard_index]);
+            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
+                keyboard_buffer[keyboard_index] = '\n';
+                putc('\n');
+                keyboard_index++;
+                newline_flag = 1;
+            }
+            keyboard_buffer[keyboard_index] = '\t';
+            putc(' ');
             keyboard_index++;
-        }
+            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
+                keyboard_buffer[keyboard_index] = '\n';
+                putc('\n');
+                keyboard_index++;
+                newline_flag = 1;
+            }
+            keyboard_buffer[keyboard_index] = '\t';
+            putc(' ');
+            keyboard_index++;
+            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
+                keyboard_buffer[keyboard_index] = '\n';
+                putc('\n');
+                keyboard_index++;
+                newline_flag = 1;
+            }
+            keyboard_buffer[keyboard_index] = '\t';
+            putc(' ');
+            keyboard_index++;
+            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
+                keyboard_buffer[keyboard_index] = '\n';
+                putc('\n');
+                keyboard_index++;
+                newline_flag = 1;
+            }
     }
 
     if (keyboard_index > 0 && keyboard_index <= BUFFER_SIZE - 1 && scan_code == BACKSPACE) { // handle backspacing
@@ -139,6 +171,37 @@ void keyboard_handler(void) {
             screen_x = MAX_LINE - 1;
             keyboard_index = keyboard_index - 2; // move before /n and prev character
             newline_flag = 0;
+        } if (keyboard_buffer[keyboard_index - 1] == '\t') {
+            if (!newline_flag) {
+                    keyboard_buffer[keyboard_index - 1] = '\0';
+                    screen_x--;
+                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
+                    if (keyboard_index > 0) {
+                        screen_x--; // update cursor
+                    }
+                    keyboard_index--;
+                    keyboard_buffer[keyboard_index - 1] = '\0';
+                    screen_x--;
+                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
+                    if (keyboard_index > 0) {
+                        screen_x--; // update cursor
+                    }
+                    keyboard_index--;
+                    keyboard_buffer[keyboard_index - 1] = '\0';
+                    screen_x--;
+                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
+                    if (keyboard_index > 0) {
+                        screen_x--; // update cursor
+                    }
+                    keyboard_index--;
+                    keyboard_buffer[keyboard_index - 1] = '\0';
+                    screen_x--;
+                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
+                    if (keyboard_index > 0) {
+                        screen_x--; // update cursor
+                    }
+                    keyboard_index--;
+                }
         } else {
             keyboard_buffer[keyboard_index - 1] = '\0';
             screen_x--;

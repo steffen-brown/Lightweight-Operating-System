@@ -29,7 +29,10 @@ void fileSystem_init(uint8_t *fs_start)
  */
 int32_t read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry)
 {
+    if (fname == NULL || strlen((int8_t*)fname) < 1 || strlen((int8_t*)fname) > MAX_FILE_NAME) 
+    {return -1;}
     uint32_t i;
+    
     // Loop through directory entries in the boot block
     for (i = 0; i < g_boot_block->num_dir_entries; i++)
     {

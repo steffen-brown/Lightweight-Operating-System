@@ -171,6 +171,9 @@ void rtc_frequency_test() {
 		rtc_wait(i);
 	}
 	
+	rtc_close();
+	disable_irq(8);
+
 	print_one_test = 0;
 	clear();
 }
@@ -211,7 +214,7 @@ int file_open_test_pos(){
 		printf("File open failed\n");
 		return FAIL;
 	}
-	printf("File open success\n");
+	printf("File open success. frame0.txt does exist so that is good.\n");
 	return PASS;
 }
 
@@ -219,7 +222,7 @@ int file_open_test_neg(){
 	TEST_HEADER;
 	int32_t ret = file_open((uint8_t*)"sad.txt");
 	if(ret == -1){
-		printf("File open failed\n");
+		printf("File open failed. sad.txt does not exist so that is good.\n");
 		return FAIL;
 	}
 	printf("File open success\n");
@@ -227,7 +230,7 @@ int file_open_test_neg(){
 }
 
 // int checkEOF(char* str){}
-int file_read_test(){
+int file_read_test(char * file){
 	TEST_HEADER;
 	clear();
 	uint8_t buf[40000];
@@ -237,14 +240,20 @@ int file_read_test(){
 	int32_t i;
 	int32_t nb=40000;
 
-	char file[] = "frame0.txt";
+	// char file[] = "frame0.txt";
 	// char file[] = "fish";
 	const uint8_t* file_name = (uint8_t *)file;
 
 	// To check if txt file or not
 	strncpy(type, file + strlen(file) - 4, 4);
+	memset(buf, 0, 40000);
 
 	f = file_open(file_name);
+	if (f == -1){
+		printf("File open failed. Too long a file name perhaps?");
+		return PASS;
+	}
+
 	r = file_read(f, buf, nb);
 
 	// printf("%s", buf);
@@ -253,32 +262,38 @@ int file_read_test(){
 	// }
 
 	if (strncmp((const int8_t *)type, (const int8_t *)".txt", 4) == 0){
-		printf("%s\n", buf);
+		printf("%s", buf);
 	}
 	else {
 		for (i = 0; i < r; i++){
-			// printf("%c", buf[i]);
-			putc(buf[i]);
+			if(i == 80) {
+				putc('\n');
+			}
+			if(buf[i] != '\0') 
+				putc(buf[i]);
 
 			// strncpy(exe_eof, buf+i-31, 31); // last 31 characters
 			// if (strncmp((const int8_t *)exe_eof, (const int8_t *)"0123456789ABCDEFGHIJKLMNOPQRSTU", 31) == 0){
 			// 	break;
 			// }
 		}
-		putc((uint8_t)"\n");
+		// putc((uint8_t)"\n");
 	}
 
+	printf("\n");
 	// printf("%s", buf);
 	// if (strncmp(type, ".txt", 4) != 0){
 	// 	printf("0123456789ABCDE- FGHIJKLMNOPQRSTU");
 	// }
 	file_close(f);
-	printf("File closed successfully");
+	printf("\nFile Name: %s\n", file);
+	printf("File closed successfully\n");
 
 	return PASS;
 
 }
 
+// Test for Directory Read
 int dir_read_test(){
 	TEST_HEADER;
 	clear();
@@ -305,23 +320,50 @@ int dir_read_test(){
 	return PASS;
 }
 
-int read_data_test(){
+
+// Test for Directory Write
+int dir_write_test(char* buf){
 	TEST_HEADER;
 	clear();
-	uint8_t  buf[8192];
-	int r;
-	int32_t nb=8192;
-	// uint32_t inode_ptr = g_boot_block->dir_entries[7].inode_num;
-    // uint32_t file_size = g_inodes[inode_ptr].size; // size in bytes
-
-	int inode = 0;
-	int offset = 0;
-	r = read_data(inode, offset, buf, nb);
-	printf("%s", buf);
+	const uint8_t* file_name = (uint8_t *)"frame0.txt";
+	uint32_t f = dir_open(file_name);
+	if (f != -1) {
+		int ret = dir_write(0, buf, 5);
+		if (ret == -1){
+			printf("Brother, I am a read-only file-system");
+			return PASS;
+		}
+		else {
+			printf("Why did I allow write");
+			return FAIL;
+		}
+	}
 	return PASS;
 }
 
+// Test for File Write
+int file_write_test(char* buf){
+	TEST_HEADER;
+	clear();
+	const uint8_t* file_name = (uint8_t *)"frame0.txt";
+	uint32_t f = dir_open(file_name);
+	if (f == -1){
+		printf("file does not exist");
+	}
+	int ret = file_write(0, buf, 5);
+	if (ret == -1){
+		printf("Brother, I am a read-only file-system");
+		return PASS;
+	}
+	else {
+		printf("Why did I allow write");
+		return FAIL;
+	}
+}
+
+
 void clear_wait(int seconds) {
+	enable_irq(8);
 	int rate = 4;
 	rtc_write(&rate);
 
@@ -331,6 +373,7 @@ void clear_wait(int seconds) {
 	}
 
 	clear();
+	disable_irq(8);
 }
 
 
@@ -374,7 +417,6 @@ void launch_tests(){
 	/* --------------Checkpoint 2 Tests-------------- */
 	
 	
-	// read_data_test();
 	
 
 	/* CHECKPOINT 2 TESTS */
@@ -396,6 +438,30 @@ void launch_tests(){
 	dir_read_test();
 
 	clear_wait(5);
+	
+	char file1[] = "grep";
+	file_read_test(file1);
 
-	file_read_test();
+	clear_wait(10);
+
+	char file2[] = "frame0.txt";
+	file_read_test(file2);
+
+	clear_wait(10);
+
+	char file3[] = "verylargetextwithverylongname.txt";
+	file_read_test(file3);
+
+	clear_wait(10);
+
+	char file4[] = "verylargetextwithverylongname.tx";
+	file_read_test(file4);
+
+	char write[] = "holaAmigos";
+	dir_write_test(write);
+
+	clear_wait(5);
+	
+	file_write_test(write);
+	
 }
