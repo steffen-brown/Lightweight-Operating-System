@@ -170,10 +170,8 @@ void rtc_frequency_test() {
 		rtc_write(&i);
 		rtc_wait(i);
 	}
-
-	rtc_close();
 	
-	disable_irq(8);
+	print_one_test = 0;
 	clear();
 }
 
@@ -199,6 +197,7 @@ void keyboard_test() {
 		terminal_write(text_buffer, bytes_read);
 	}
 	
+	clear();
 	terminal_close();
 }
 
@@ -322,6 +321,18 @@ int read_data_test(){
 	return PASS;
 }
 
+void clear_wait(int seconds) {
+	int rate = 4;
+	rtc_write(&rate);
+
+	int i;
+	for(i = 0; i < seconds * rate; i++) {
+		rtc_read();
+	}
+
+	clear();
+}
+
 
 
 
@@ -361,17 +372,10 @@ void launch_tests(){
 
 
 	/* --------------Checkpoint 2 Tests-------------- */
-	// file_open_test_pos();
-	// file_open_test_neg();
-	// file_read_test();
+	
+	
 	// read_data_test();
-	// dir_read_test();
-	file_read_test();
-
-
-	uint8_t text[120];
-	int bytes = terminal_read(text, 120);
-	text[119] = '\0';
+	
 
 	/* CHECKPOINT 2 TESTS */
 
@@ -380,4 +384,18 @@ void launch_tests(){
 
 	// Keyboard Test
 	keyboard_test();
+
+	file_open_test_pos();
+
+	clear_wait(5);
+
+	file_open_test_neg();
+
+	clear_wait(5);
+
+	dir_read_test();
+
+	clear_wait(5);
+
+	file_read_test();
 }

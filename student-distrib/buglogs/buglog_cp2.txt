@@ -1,10 +1,43 @@
 Interesting class. Buglogs can be very very long. But here are a few of the bugs we faced:
 
-1. File system
-    - file read (testing): return buf size was shopwing up as zero. Bug: read_data returned transfer_size but file read did not. We could do without it
-      but our implementation of the test cases made use of the number of bytes copied so we changed return value of function file_read. This was causing
-      the if condition in the test cases to always fail
-    - stupid bug: Procesing buffer returned by file read: was processing as txt instead of exe (we were getting extra junk characters in exe output at the
-      time) so we were getting processing output differently.
-    - printf() for full string was unable to print the magic string at the end of the file. We switched to putc() to be able to see the magic string at the end
-      of the file.
+
+1. File(s): keyboard.c
+Bug: When implementing caps lock and shift, I came across the edge case where are pressed. This should result in a lowercase keyboard,
+but the output was always shifted characters.
+Fix: I printed the keyboard scan codes that were triggered by the keyboard to the screen to figure out
+what was going. What was happing was that for some reason, when I hit shift and caps lock together, caps lock
+would randomly show the released scan codes. This behavior made no sense, and I was able to figure it out that
+this was simply just a Mac problem, and it was able to work correctly on another keyboard.
+
+
+2. File(s): keyboard.c
+Bug: When implementing backspace on the keyboard, during the implementation of backspacing into the previous
+line (when you type enough on a line to go to the next line), the cursor would backspace to the end of the
+previous line and then stop completely when I hit backspace again.
+Fix: Since at the point where backspace stalled, if I typed any additional characters it would print on the next line,
+I was able to isolate this to a cursor issue, where screen_x and screen_y were simply incorrect. They were correct when
+removing the actual character during backspace to previous line, but had issues after the backspace. I was able to fix
+this by playing around with screen_x and screen_y positions, and setting them to the same values before the putc operation
+(which removes the char) afterward.
+
+
+3. File(s): file_sys.c
+Bug: read_data returned transfer_size but file read did not. We could do without it
+but our implementation of the test cases made use of the number of bytes copied.
+Fix: We changed return value of function file_read. This was causing
+the if condition in the test cases to always fail
+
+
+4. File(s): file_sys.c
+Bug: Procesing buffer returned by file read: was processing as txt instead of exe (we were getting extra junk characters
+in exe output at the time) so we were getting processing output differently.
+Fix: printf() for full string was unable to print the magic string at the end of the file. We switched to putc() to be able
+to see the magic string at the end of the file.
+
+
+5. File(s): rtc.c
+Bug: At certain high input frequencies to rtc_write, the interrupts from the RTC would fail to first. The frequencies this issue partained
+to were the ones associated with a RTC rate of 1 or 2. This bug was caused by roll over by the RTC at these high frequencies.
+Fix: In rtc_write, get the only valid RTC rates to fall between 3 and 15 inclusive as these the RTC could handle.
+
+

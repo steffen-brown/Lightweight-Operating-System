@@ -12,4 +12,6 @@ extern int rtc_write(const void* buf);
 extern int rtc_read();
 extern int rtc_close();
 
+extern int print_one_test;
+
 #endif

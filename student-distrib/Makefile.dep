@@ -1,10 +1,6 @@
 boot.o: boot.S multiboot.h x86_desc.h types.h
 x86_desc.o: x86_desc.S x86_desc.h types.h
-<<<<<<< HEAD
-file_sys.o: file_sys.c
-=======
 file_sys.o: file_sys.c file_sys.h lib.h types.h
->>>>>>> temp_cp2
 i8259.o: i8259.c i8259.h types.h lib.h
 interrupts.o: interrupts.c x86_desc.h types.h interrupts.h lib.h i8259.h \
   RTC.h keyboard.h
