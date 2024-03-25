@@ -1,0 +1,10 @@
+Interesting class. Buglogs can be very very long. But here are a few of the bugs we faced:
+
+1. File system
+    - file read (testing): return buf size was shopwing up as zero. Bug: read_data returned transfer_size but file read did not. We could do without it
+      but our implementation of the test cases made use of the number of bytes copied so we changed return value of function file_read. This was causing
+      the if condition in the test cases to always fail
+    - stupid bug: Procesing buffer returned by file read: was processing as txt instead of exe (we were getting extra junk characters in exe output at the
+      time) so we were getting processing output differently.
+    - printf() for full string was unable to print the magic string at the end of the file. We switched to putc() to be able to see the magic string at the end
+      of the file.

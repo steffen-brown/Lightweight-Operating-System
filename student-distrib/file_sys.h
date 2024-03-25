@@ -70,7 +70,7 @@ typedef struct
     uint8_t data[BLOCK_SIZE]; // Data block
 } data_block_t;
 
-// Process control block (PCB) structure
+// Process control block (PCB) structure: will use for CP3
 // typedef struct
 // {
 //     file_desc_t* fd_arr[8]; // (Max 8) active files
@@ -86,19 +86,20 @@ typedef struct
 // }
 
 // Function prototypes for file system operations
-int read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry);
-int read_dentry_by_index(uint32_t index, dir_entry_t *dentry);
-int read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length);
+void fileSystem_init(uint8_t *fs_start); // Function to initialize the file system
+int read_dentry_by_name(const uint8_t *fname, dir_entry_t *dentry); // Function to read a directory entry by name
+int read_dentry_by_index(uint32_t index, dir_entry_t *dentry); // Function to read a directory entry by index
+int read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length); // Function to read data from an inode
 
 // Prototypes for file system abstractions
-int32_t dir_read(int32_t fd, void *buf, int32_t nbytes);
-int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes);
-int32_t dir_open(const uint8_t *filename);
-int32_t dir_close(int32_t fd);
-int32_t file_read(int32_t fd, void *buf, int32_t nbytes);
-int32_t file_write(int32_t fd, const void *buf, int32_t nbytes);
-int32_t file_open(const uint8_t *filename);
-int32_t file_close(int32_t fd);
+int32_t dir_read(int32_t fd, void *buf, int32_t nbytes); // Read each file name in the directory
+int32_t dir_write(int32_t fd, const void *buf, int32_t nbytes); // Write directory to filesystem => Does nothing since read-only file system
+int32_t dir_open(const uint8_t *filename); // Opens a directory file (note file types) using read_dentry_by_name, return 0
+int32_t dir_close(int32_t fd); // Close directory, Undo dir_open
+int32_t file_read(int32_t fd, void *buf, int32_t nbytes); // Reads nbytes bytes of data from file into buf using read_data
+int32_t file_write(int32_t fd, const void *buf, int32_t nbytes); // Write file to filesystem => Does nothing since read-only file system
+int32_t file_open(const uint8_t *filename); // Initialize any temporary structures, return 0
+int32_t file_close(int32_t fd); // Delete any temporary structures (undo tasks in file_open), return 0
 
 // Global pointers for the file system
 boot_block_t *g_boot_block;

@@ -127,6 +127,129 @@ void syscall_test() {
 
 
 
+
+/* Checkpoint 2 tests */
+// File open test
+int file_open_test_pos(){
+	TEST_HEADER;
+	int32_t ret = file_open((uint8_t*)"frame0.txt");
+	if(ret == -1){
+		printf("File open failed\n");
+		return FAIL;
+	}
+	printf("File open success\n");
+	return PASS;
+}
+
+int file_open_test_neg(){
+	TEST_HEADER;
+	int32_t ret = file_open((uint8_t*)"sad.txt");
+	if(ret == -1){
+		printf("File open failed\n");
+		return FAIL;
+	}
+	printf("File open success\n");
+	return PASS;
+}
+
+// int checkEOF(char* str){}
+int file_read_test(){
+	TEST_HEADER;
+	clear();
+	uint8_t buf[40000];
+	int32_t r; int32_t f;
+	char type[4]; // file type txt or not
+	// char exe_eof[31]; // to compare buffer against end of file string for non txt files. 33 is length of 0123456789ABCDE- FGHIJKLMNOPQRSTU
+	int32_t i;
+	int32_t nb=40000;
+
+	char file[] = "frame0.txt";
+	// char file[] = "fish";
+	const uint8_t* file_name = (uint8_t *)file;
+
+	// To check if txt file or not
+	strncpy(type, file + strlen(file) - 4, 4);
+
+	f = file_open(file_name);
+	r = file_read(f, buf, nb);
+
+	// printf("%s", buf);
+	// if (strncmp((const int8_t *)type, (const int8_t *)".txt", 4) != 0){
+	// 	printf("0123456789ABCDEFGHIJKLMNOPQRSTU");
+	// }
+
+	if (strncmp((const int8_t *)type, (const int8_t *)".txt", 4) == 0){
+		printf("%s\n", buf);
+	}
+	else {
+		for (i = 0; i < r; i++){
+			// printf("%c", buf[i]);
+			putc(buf[i]);
+
+			// strncpy(exe_eof, buf+i-31, 31); // last 31 characters
+			// if (strncmp((const int8_t *)exe_eof, (const int8_t *)"0123456789ABCDEFGHIJKLMNOPQRSTU", 31) == 0){
+			// 	break;
+			// }
+		}
+		putc((uint8_t)"\n");
+	}
+
+	// printf("%s", buf);
+	// if (strncmp(type, ".txt", 4) != 0){
+	// 	printf("0123456789ABCDE- FGHIJKLMNOPQRSTU");
+	// }
+	file_close(f);
+	printf("File closed successfully");
+
+	return PASS;
+
+}
+
+int dir_read_test(){
+	TEST_HEADER;
+	clear();
+	uint8_t  buf[34];
+	int32_t file_type, file_size,ret;
+	uint32_t i;
+	uint32_t dir_num = g_boot_block->num_dir_entries;
+	for (i = 0; i < dir_num; i++) {
+		memset(buf, 0, 34); // Fill the buffer with zeroes
+		ret = dir_read(i, buf, 1024);
+		if (ret == -1) {
+			printf("dir_read failed\n");
+			return FAIL;
+		}
+		// get the file type and size
+		file_type = g_boot_block->dir_entries[i].file_type;
+		file_size = g_inodes[g_boot_block->dir_entries[i].inode_num].size;
+		
+		printf("File name: %s, ", buf);
+		printf("File type: %d,  ", file_type);
+		printf("File size: %d, ", file_size);
+		printf("\n");
+	}
+	return PASS;
+}
+
+int read_data_test(){
+	TEST_HEADER;
+	clear();
+	uint8_t  buf[8192];
+	int r;
+	int32_t nb=8192;
+	// uint32_t inode_ptr = g_boot_block->dir_entries[7].inode_num;
+    // uint32_t file_size = g_inodes[inode_ptr].size; // size in bytes
+
+	int inode = 0;
+	int offset = 0;
+	r = read_data(inode, offset, buf, nb);
+	printf("%s", buf);
+	return PASS;
+}
+
+
+
+
 /* Test suite entry point */
 void launch_tests(){
 	// disable_irq(8);
@@ -161,107 +284,20 @@ void launch_tests(){
 
 	// syscall_test(); // Test int x80 (Also can do keyboard echoing)
 
-	// uint8_t text[120];
-	// int bytes = terminal_read(text, 120);
-	// text[119] = '\0';
 
-
-	// terminal_write(text, bytes);
+	/* --------------Checkpoint 2 Tests-------------- */
 	// file_open_test_pos();
 	// file_open_test_neg();
-	file_read_test();
+	// file_read_test();
+	// read_data_test();
 	// dir_read_test();
+	file_read_test();
+
+
+	uint8_t text[120];
+	int bytes = terminal_read(text, 120);
+	text[119] = '\0';
+
+
+	terminal_write(text, bytes);
 }
-
-/* Checkpoint 2 tests */
-// File open test
-int file_open_test_pos(){
-	TEST_HEADER;
-	int32_t ret = file_open((uint8_t*)"frame0.txt");
-	if(ret == -1){
-		printf("File open failed\n");
-		return FAIL;
-	}
-	printf("File open success\n");
-	return PASS;
-}
-
-int file_open_test_neg(){
-	TEST_HEADER;
-	int32_t ret = file_open((uint8_t*)"sad.txt");
-	if(ret == -1){
-		printf("File open failed\n");
-		return FAIL;
-	}
-	printf("File open success\n");
-	return PASS;
-}
-
-int file_read_test(){
-	TEST_HEADER;
-	clear();
-	uint8_t  buf[8192];
-	int r;
-	int32_t nb=8192;
-	const uint8_t* file_name = (uint8_t *)"frame0.txt";
-	int f;
-	f = file_open(file_name);
-	r = file_read(f, buf, nb);
-	printf("%s", buf);
-	return PASS;
-
-}
-
-int dir_read_test(){
-	TEST_HEADER;
-	clear();
-	uint8_t  buf[34];
-	int32_t file_type, file_size,ret;
-	uint32_t i;
-	uint32_t dir_num = g_boot_block->num_dir_entries;
-	for (i = 0; i < dir_num; i++) {
-		memset(buf, 0, 34); // Fill the buffer with zeroes
-		ret = dir_read(i, buf, 1024);
-		if (ret == -1) {
-			printf("dir_read failed\n");
-			return FAIL;
-		}
-		// get the file type and size
-		file_type = g_boot_block->dir_entries[i].file_type;
-		file_size = g_inodes[g_boot_block->dir_entries[i].inode_num].size;
-		
-		printf("File name: %s, ", buf);
-		printf("File type: %d,  ", file_type);
-		printf("File size: %d, ", file_size);
-		printf("\n");
-
-
-	}
-
-}
-
-int read_data_test(){
-	TEST_HEADER;
-	clear();
-	uint8_t  buf[8192];
-	int r;
-	int32_t nb=8192;
-	uint32_t inode_ptr = g_boot_block->dir_entries[7].inode_num;
-    uint32_t file_size = g_inodes[inode_ptr].size; // size in bytes
-
-	int inode = 0;
-	int offset = 0;
-	r = read_data(inode, offset, buf, nb);
-	printf("%s", buf);
-	return PASS;
-
-}
-
-// File close test
-// file read test
-// file write test
-// dir read test
-// dir write test
-// dir open test
-// dir close test
-
