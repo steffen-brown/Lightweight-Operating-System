@@ -204,10 +204,15 @@ void keyboard_test() {
 	terminal_close();
 }
 
-
-/* Checkpoint 2 tests */
-
-// File open test should pass
+/*
+ * file_open_test_pos
+ *   DESCRIPTION: Tests the file open operation with a positive case where the file exists ("frame0.txt"). It
+ *                attempts to open the file and checks for success.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: PASS if the file exists and is opened successfully; FAIL otherwise.
+ *   SIDE EFFECTS: Opens a file, which may affect file system state or file descriptor table.
+ */
 int file_open_test_pos(){
 	TEST_HEADER;
 	int32_t ret = file_open((uint8_t*)"frame0.txt");
@@ -219,7 +224,16 @@ int file_open_test_pos(){
 	return PASS;
 }
 
-// File Open should fail here (non existent file)
+/*
+ * file_open_test_neg
+ *   DESCRIPTION: Tests the file open operation with a negative case where the file does not exist ("sad.txt"). It
+ *                attempts to open the file and expects failure.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: PASS if the file does not exist and the open operation fails; FAIL otherwise.
+ *   SIDE EFFECTS: Attempts to open a non-existing file, which should not affect the file system but may
+ *                 modify internal state related to error handling.
+ */
 int file_open_test_neg(){
 	TEST_HEADER;
 	int32_t ret = file_open((uint8_t*)"sad.txt");
@@ -231,19 +245,26 @@ int file_open_test_neg(){
 	return PASS;
 }
 
-// Test for File read
+/*
+ * file_read_test
+ *   DESCRIPTION: Tests reading from a file. It tries to read the contents of a specified file into a buffer and
+ *                displays the content based on the file type (text or binary).
+ *   INPUTS: char* file - the name of the file to be read.
+ *   OUTPUTS: none
+ *   RETURN VALUE: PASS if the file is successfully read; the specific return value may vary based on the test's
+ *                 implementation details.
+ *   SIDE EFFECTS: Reads a file which may affect the file descriptor's read pointer or the terminal display
+ *                 if the content is printed.
+ */
 int file_read_test(char * file){
 	TEST_HEADER;
 	clear();
 	uint8_t buf[40000];
 	int32_t r; int32_t f;
-	char type[4]; // file type txt or not
-	// char exe_eof[31]; // to compare buffer against end of file string for non txt files. 33 is length of 0123456789ABCDE- FGHIJKLMNOPQRSTU
+	char type[4];
 	int32_t i;
 	int32_t nb=40000;
 
-	// char file[] = "frame0.txt";
-	// char file[] = "fish";
 	const uint8_t* file_name = (uint8_t *)file;
 
 	// To check if txt file or not
@@ -258,11 +279,6 @@ int file_read_test(char * file){
 
 	r = file_read(f, buf, nb);
 
-	// printf("%s", buf);
-	// if (strncmp((const int8_t *)type, (const int8_t *)".txt", 4) != 0){
-	// 	printf("0123456789ABCDEFGHIJKLMNOPQRSTU");
-	// }
-
 	if (strncmp((const int8_t *)type, (const int8_t *)".txt", 4) == 0){
 		printf("%s", buf);
 	}
@@ -274,19 +290,10 @@ int file_read_test(char * file){
 			if(buf[i] != '\0') 
 				putc(buf[i]);
 
-			// strncpy(exe_eof, buf+i-31, 31); // last 31 characters
-			// if (strncmp((const int8_t *)exe_eof, (const int8_t *)"0123456789ABCDEFGHIJKLMNOPQRSTU", 31) == 0){
-			// 	break;
-			// }
 		}
-		// putc((uint8_t)"\n");
 	}
 
 	printf("\n");
-	// printf("%s", buf);
-	// if (strncmp(type, ".txt", 4) != 0){
-	// 	printf("0123456789ABCDE- FGHIJKLMNOPQRSTU");
-	// }
 	file_close(f);
 	printf("\nFile Name: %s\n", file);
 	printf("File closed successfully\n");
@@ -295,7 +302,16 @@ int file_read_test(char * file){
 
 }
 
-// Test for Directory Read
+/*
+ * dir_read_test
+ *   DESCRIPTION: Tests reading directory entries from a filesystem. It sequentially reads each directory entry,
+ *                displaying the name, type, and size of the files contained.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: PASS if all directory entries are read successfully; FAIL otherwise.
+ *   SIDE EFFECTS: Accesses filesystem metadata which can affect system performance or caching but does not
+ *                 modify any filesystem state.
+ */
 int dir_read_test(){
 	TEST_HEADER;
 	clear();
@@ -323,12 +339,19 @@ int dir_read_test(){
 }
 
 
-// Test for Directory Write
+/*
+ * dir_write_test
+ *   DESCRIPTION: Tests write operation on a directory, which should fail as the filesystem is read-only. This
+ *                test attempts to write to a directory and checks for the expected failure.
+ *   INPUTS: char* write - data attempted to be written to the directory.
+ *   OUTPUTS: none
+ *   RETURN VALUE: PASS if the write operation correctly fails; FAIL if it unexpectedly succeeds.
+ *   SIDE EFFECTS: Attempts to write to a read-only filesystem, which should not change the filesystem state
+ *                 but may modify internal error handling or logging mechanisms.
+ */
 int dir_write_test(char* write){
 	TEST_HEADER;
 	clear();
-	// const uint8_t* file_name = (uint8_t *)"frame0.txt";
-	// int32_t f = dir_open(file_name);
 	int32_t ret = dir_write(0, write, 5);
 	if (ret == -1){
 		printf("DIR_WRITE: Brother, I am a read-only file-system");
@@ -340,7 +363,16 @@ int dir_write_test(char* write){
 	}
 }
 
-// Test for File Write
+/*
+ * file_write_test
+ *   DESCRIPTION: Tests write operation on a file, which should fail due to the filesystem's read-only nature.
+ *                This test attempts to write to a file ("frame0.txt") and expects failure.
+ *   INPUTS: char* write - the data attempted to be written to the file.
+ *   OUTPUTS: none
+ *   RETURN VALUE: PASS if the file write operation fails as expected; FAIL if it unexpectedly succeeds.
+ *   SIDE EFFECTS: Tries to modify a file in a read-only filesystem, which should not affect the filesystem
+ *                 but might alter internal state or error handling mechanisms.
+ */
 int file_write_test(char* write){
 	TEST_HEADER;
 	clear();
@@ -360,7 +392,16 @@ int file_write_test(char* write){
 	return FAIL;
 }
 
-
+/*
+ * clear_wait
+ *   DESCRIPTION: Clears the terminal and waits for a specified number of seconds by leveraging the RTC to
+ *                introduce a delay without busy waiting.
+ *   INPUTS: int seconds - the number of seconds to wait after clearing the screen.
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Clears the terminal screen which modifies the terminal display and uses the RTC, potentially
+ *                 affecting the system's timing or interrupt handling.
+ */
 void clear_wait(int seconds) {
 	enable_irq(8);
 	int rate = 4;
@@ -415,10 +456,6 @@ void launch_tests(){
 
 	/* --------------Checkpoint 2 Tests-------------- */
 	
-	
-	
-
-	/* CHECKPOINT 2 TESTS */
 
 	// RTC Test
 	rtc_frequency_test();
@@ -426,43 +463,52 @@ void launch_tests(){
 	// Keyboard Test
 	keyboard_test();
 
+	// Test opening a VALID file
 	file_open_test_pos();
 
-	clear_wait(5);
+	clear_wait(10);
 
+	// Test opening and INVALID file
 	file_open_test_neg();
 
-	clear_wait(5);
+	clear_wait(10);
 
+	// Read and print the directory files
 	dir_read_test();
 
-	clear_wait(5);
+	clear_wait(10);
 	
+	// Read and print GREP executable
 	char file1[] = "grep";
 	file_read_test(file1);
 
 	clear_wait(10);
 
+	// Read and print fish frame text file
 	char file2[] = "frame0.txt";
 	file_read_test(file2);
 
 	clear_wait(10);
 
+	// Try to read and print a very long text file with an invalid suffix
 	char file3[] = "verylargetextwithverylongname.txt";
 	file_read_test(file3);
 
 	clear_wait(10);
 
+	// Read and print a very long text file with an valid suffix
 	char file4[] = "verylargetextwithverylongname.tx";
 	file_read_test(file4);
 
 	clear_wait(10);
 
+	// Attempt and fail to write to a file
 	char write[] = "holaAmigos";
 	file_write_test(write);
 
 	clear_wait(10);
 	
+	// Attempt and fail to write to a directory
 	dir_write_test(write);
 	
 }
