@@ -12,7 +12,7 @@
 #include "interrupts.h"
 #include "keyboard.h"
 #include "paging.h"
-
+#include "file_sys.h"
 #define RUN_TESTS
 
 
@@ -57,10 +57,13 @@ void entry(unsigned long magic, unsigned long addr) {
         int mod_count = 0;
         int i;
         module_t* mod = (module_t*)mbi->mods_addr;
+        fileSystem_init((uint8_t*)mod->mod_start); // Initialize the file system    
         while (mod_count < mbi->mods_count) {
             printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
             printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
             printf("First few bytes of module:\n");
+            
+
             for (i = 0; i < 16; i++) {
                 printf("0x%x ", *((char*)(mod->mod_start+i)));
             }
@@ -140,7 +143,6 @@ void entry(unsigned long magic, unsigned long addr) {
         tss.esp0 = 0x800000;
         ltr(KERNEL_TSS);
     }
-
     setup_kernel_paging(); // Map the kernal and video memory to pages
     enable_paging(); // Enable paging on the OS
 
@@ -156,7 +158,6 @@ void entry(unsigned long magic, unsigned long addr) {
 
     /* Initialize and enable to keyboard*/
     keyboard_init();
-
     RTC_init(); // Initalize and enable the RTC
 
     
