@@ -173,26 +173,26 @@ int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
 
 }
  
-// helper function to get file type
-int32_t get_file_type(int32_t fd){
-    dir_entry_t dentry;
-    int32_t ret = read_dentry_by_index(fd, &dentry);
-    if (ret == FS_ERROR)
-    {
-        return FS_ERROR;
-    }
-    return dentry.file_type;
-}
-// helper function to get file size
-int32_t get_file_size(int32_t fd){
-    dir_entry_t dentry;
-    int32_t ret = read_dentry_by_index(fd, &dentry);
-    if (ret == FS_ERROR)
-    {
-        return FS_ERROR;
-    }
-    return g_inodes[dentry.inode_num].size;
-}
+// // helper function to get file type
+// int32_t get_file_type(int32_t fd){
+//     dir_entry_t dentry;
+//     int32_t ret = read_dentry_by_index(fd, &dentry);
+//     if (ret == FS_ERROR)
+//     {
+//         return FS_ERROR;
+//     }
+//     return dentry.file_type;
+// }
+// // helper function to get file size
+// int32_t get_file_size(int32_t fd){
+//     dir_entry_t dentry;
+//     int32_t ret = read_dentry_by_index(fd, &dentry);
+//     if (ret == FS_ERROR)
+//     {
+//         return FS_ERROR;
+//     }
+//     return g_inodes[dentry.inode_num].size;
+// }
 
 
 /*

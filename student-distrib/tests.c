@@ -164,7 +164,7 @@ void rtc_frequency_test() {
 	rtc_wait(4);
 
 	int i;
-	for(i = 4; i <= 1028; i *= 2) {
+	for(i = 4; i <= 2056; i *= 2) {
 		clear();
 		printf("%d", i);
 		rtc_write(&i);
@@ -206,7 +206,8 @@ void keyboard_test() {
 
 
 /* Checkpoint 2 tests */
-// File open test
+
+// File open test should pass
 int file_open_test_pos(){
 	TEST_HEADER;
 	int32_t ret = file_open((uint8_t*)"frame0.txt");
@@ -218,6 +219,7 @@ int file_open_test_pos(){
 	return PASS;
 }
 
+// File Open should fail here (non existent file)
 int file_open_test_neg(){
 	TEST_HEADER;
 	int32_t ret = file_open((uint8_t*)"sad.txt");
@@ -229,7 +231,7 @@ int file_open_test_neg(){
 	return PASS;
 }
 
-// int checkEOF(char* str){}
+// Test for File read
 int file_read_test(char * file){
 	TEST_HEADER;
 	clear();
@@ -322,43 +324,40 @@ int dir_read_test(){
 
 
 // Test for Directory Write
-int dir_write_test(char* buf){
+int dir_write_test(char* write){
 	TEST_HEADER;
 	clear();
-	const uint8_t* file_name = (uint8_t *)"frame0.txt";
-	uint32_t f = dir_open(file_name);
-	if (f != -1) {
-		int ret = dir_write(0, buf, 5);
-		if (ret == -1){
-			printf("Brother, I am a read-only file-system");
-			return PASS;
-		}
-		else {
-			printf("Why did I allow write");
-			return FAIL;
-		}
-	}
-	return PASS;
-}
-
-// Test for File Write
-int file_write_test(char* buf){
-	TEST_HEADER;
-	clear();
-	const uint8_t* file_name = (uint8_t *)"frame0.txt";
-	uint32_t f = dir_open(file_name);
-	if (f == -1){
-		printf("file does not exist");
-	}
-	int ret = file_write(0, buf, 5);
+	// const uint8_t* file_name = (uint8_t *)"frame0.txt";
+	// int32_t f = dir_open(file_name);
+	int32_t ret = dir_write(0, write, 5);
 	if (ret == -1){
-		printf("Brother, I am a read-only file-system");
+		printf("DIR_WRITE: Brother, I am a read-only file-system");
 		return PASS;
 	}
 	else {
-		printf("Why did I allow write");
+		printf("Did I allow write?");
 		return FAIL;
 	}
+}
+
+// Test for File Write
+int file_write_test(char* write){
+	TEST_HEADER;
+	clear();
+	const uint8_t* file_name = (uint8_t *)"frame0.txt";
+	int32_t f = file_open(file_name);
+	if (f != -1) {
+		int32_t ret = file_write(f, write, 5);
+		if (ret == -1){
+			printf("FILE_WRITE: Brother, I am a read-only file-system");
+			return PASS;
+		}
+		else {
+			printf("Did I allow write?");
+			return FAIL;
+		}
+	}
+	return FAIL;
 }
 
 
@@ -457,11 +456,13 @@ void launch_tests(){
 	char file4[] = "verylargetextwithverylongname.tx";
 	file_read_test(file4);
 
-	char write[] = "holaAmigos";
-	dir_write_test(write);
+	clear_wait(10);
 
-	clear_wait(5);
-	
+	char write[] = "holaAmigos";
 	file_write_test(write);
+
+	clear_wait(10);
+	
+	dir_write_test(write);
 	
 }

@@ -114,49 +114,27 @@ void keyboard_handler(void) {
         clear();
     }
 
-    if (scan_code == TAB && keyboard_index + 4 < BUFFER_SIZE) { // handles extra space when tab is pressed
-            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
-                keyboard_buffer[keyboard_index] = '\n';
-                putc('\n');
-                keyboard_index++;
-                newline_flag = 1;
-            }
+    if (scan_code == TAB && keyboard_index + TAB_SPACE < BUFFER_SIZE && screen_x + TAB_SPACE < MAX_LINE) { // handles extra space when tab is pressed
+        if (keyboard_index + 2 < BUFFER_SIZE) {
             keyboard_buffer[keyboard_index] = '\t';
-            putc(' ');
+            putc(' '); // tab space
             keyboard_index++;
-            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
-                keyboard_buffer[keyboard_index] = '\n';
-                putc('\n');
-                keyboard_index++;
-                newline_flag = 1;
-            }
+        }
+        if (keyboard_index + 2 < BUFFER_SIZE) {
             keyboard_buffer[keyboard_index] = '\t';
-            putc(' ');
+            putc(' '); // tab space
             keyboard_index++;
-            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
-                keyboard_buffer[keyboard_index] = '\n';
-                putc('\n');
-                keyboard_index++;
-                newline_flag = 1;
-            }
+        }
+        if (keyboard_index + 2 < BUFFER_SIZE) {
             keyboard_buffer[keyboard_index] = '\t';
-            putc(' ');
+            putc(' '); // tab space
             keyboard_index++;
-            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
-                keyboard_buffer[keyboard_index] = '\n';
-                putc('\n');
-                keyboard_index++;
-                newline_flag = 1;
-            }
+        }
+        if (keyboard_index + 2 < BUFFER_SIZE) {
             keyboard_buffer[keyboard_index] = '\t';
-            putc(' ');
+            putc(' '); // tab space
             keyboard_index++;
-            if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
-                keyboard_buffer[keyboard_index] = '\n';
-                putc('\n');
-                keyboard_index++;
-                newline_flag = 1;
-            }
+        }
     }
 
     if (keyboard_index > 0 && keyboard_index <= BUFFER_SIZE - 1 && scan_code == BACKSPACE) { // handle backspacing
@@ -169,39 +147,40 @@ void keyboard_handler(void) {
             putc(keyboard_buffer[keyboard_index - 2]); // remove character
             screen_y = cur_y;
             screen_x = MAX_LINE - 1;
-            keyboard_index = keyboard_index - 2; // move before /n and prev character
+            keyboard_index = keyboard_index - 2; // move before \n and prev character
             newline_flag = 0;
-        } if (keyboard_buffer[keyboard_index - 1] == '\t') {
-            if (!newline_flag) {
-                    keyboard_buffer[keyboard_index - 1] = '\0';
-                    screen_x--;
-                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
-                    if (keyboard_index > 0) {
-                        screen_x--; // update cursor
-                    }
-                    keyboard_index--;
-                    keyboard_buffer[keyboard_index - 1] = '\0';
-                    screen_x--;
-                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
-                    if (keyboard_index > 0) {
-                        screen_x--; // update cursor
-                    }
-                    keyboard_index--;
-                    keyboard_buffer[keyboard_index - 1] = '\0';
-                    screen_x--;
-                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
-                    if (keyboard_index > 0) {
-                        screen_x--; // update cursor
-                    }
-                    keyboard_index--;
-                    keyboard_buffer[keyboard_index - 1] = '\0';
-                    screen_x--;
-                    putc(keyboard_buffer[keyboard_index - 1]); // remove character
-                    if (keyboard_index > 0) {
-                        screen_x--; // update cursor
-                    }
-                    keyboard_index--;
-                }
+        } else if (keyboard_buffer[keyboard_index - 1] == '\t') { // deleting extra spaces when tab exists
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            screen_x--;
+            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            if (keyboard_index > 0) {
+                screen_x--; // update cursor
+            }
+            keyboard_index--;
+
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            screen_x--;
+            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            if (keyboard_index > 0) {
+                screen_x--; // update cursor
+            }
+            keyboard_index--;
+
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            screen_x--;
+            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            if (keyboard_index > 0) {
+                screen_x--; // update cursor
+            }
+            keyboard_index--;
+
+            keyboard_buffer[keyboard_index - 1] = '\0';
+            screen_x--;
+            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            if (keyboard_index > 0) {
+                screen_x--; // update cursor
+            }
+            keyboard_index--;
         } else {
             keyboard_buffer[keyboard_index - 1] = '\0';
             screen_x--;
@@ -289,7 +268,11 @@ int terminal_write(void* buffer, uint32_t bytes) {
 
     int i;
     for(i = 0; i < bytes; i++) { // Iterate over each byte in the input buffer
-        putc(input[i]); // Write each byte to the terminal
+        if(input[i] == '\t') {
+            putc(' ');
+        } else {
+            putc(input[i]); // Write each byte to the terminal
+        }
         bytes_written++; // Increment the written byte count
 
     }

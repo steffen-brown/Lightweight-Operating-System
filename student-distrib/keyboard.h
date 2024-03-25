@@ -8,6 +8,7 @@
 #define SCAN_CODES      58      // number of scan codes used
 #define BUFFER_SIZE     128     // size of screen keyboard buffer
 #define MAX_LINE        80      // maximum number of characters per line
+#define TAB_SPACE       4       // space for tabs
 #define KEYBOARD_PORT   0x60    // keyboard data port
 
 #define LEFT_SHIFT      0x2A    // left shift scan code

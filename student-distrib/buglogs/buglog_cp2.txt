@@ -41,3 +41,19 @@ to were the ones associated with a RTC rate of 1 or 2. This bug was caused by ro
 Fix: In rtc_write, get the only valid RTC rates to fall between 3 and 15 inclusive as these the RTC could handle.
 
 
+6. File(s): file_sys.c - Inode Numbers in Directory Entries Defaulting to Zero:
+Problem: All inode numbers within the dir_entries were erroneously set to zero.
+Cause: The reserved bits were incorrectly positioned before the inode number within the directory entry structure.
+Solution: Adjust the structure definition of directory entries to correctly position the inode number after the reserved bits.
+
+
+7. File(s): file_sys.c - Page Faults during File Read Operations:
+Problem: Encountered page faults when attempting to read files.
+Cause: The issue was traced back to creating a pointer instead of dereferencing a dentry variable in the file read function.
+Solution: Corrected the file read logic to properly dereference the dentry variable instead of mistakenly creating a new pointer.
+
+
+8. File(s): file_sys.c - Display Issues with Long Filenames:
+Problem: Filenames that were very long ended unexpectedly with a smiley face character.
+Cause: The buffer allocated for filenames was one byte too short, causing buffer overflows which in turn led to incorrect character display at the end of long filenames.
+Solution: Increased the filename buffer size from 32 to 33 bytes, ensuring there is sufficient space for the null terminator in strings of maximum length.
