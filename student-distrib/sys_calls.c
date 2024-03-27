@@ -1,6 +1,5 @@
 #include "sys_calls.h"
 
-
 int32_t halt(uint32_t status) {
     return 0;
 }

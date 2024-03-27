@@ -1,4 +1,4 @@
-#include "sys_calls.h"
+.global sys_calls_handler
 
 sys_calls_handler:
     pushl   %ebp 
@@ -10,9 +10,9 @@ sys_calls_handler:
 
     movl    8(%ebp), %eax /* Load call number */
 
-    cpml    $1, %eax
+    cmpl    $1, %eax
     jl      return_error /* If call number < 1, error */
-    cpml    $10, %eax
+    cmpl    $10, %eax
     jg      return_error /* If call number > 10, error */
 
     pushl   20(%ebp)
