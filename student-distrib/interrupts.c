@@ -4,6 +4,7 @@
 #include "i8259.h"
 #include "RTC.h"
 #include "keyboard.h"
+#include "sys_calls.h"
 
 /*
  * read_cr2
@@ -33,6 +34,13 @@ uint32_t read_cr2() {
  *                 RTC, keyboard, and system calls.
  */
 void exc_handler(int vector) {
+    uint32_t eax, ebx, ecx, edx;
+
+    asm("mov %%eax, %0" : "=r"(eax)); // Read EAX into eax
+    asm("mov %%ebx, %0" : "=r"(ebx)); // Read EBX into ebx
+    asm("mov %%ecx, %0" : "=r"(ecx)); // Read ECX into ecx
+    asm("mov %%edx, %0" : "=r"(edx)); // Read EDX into edx
+
     // Range check for defined CPU exceptions
     if(vector >= 0 && vector <= 0x13) { // 0x00 to 0x13: CPU exception vectors
         printf("Exception %d\n", vector);
@@ -77,8 +85,7 @@ void exc_handler(int vector) {
     else if(vector == 0x21) { // 0x21: Keyboard interrupt vector number
         keyboard_handler();
     } else if (vector == 0x80) { // 0x80: System Call vector number
-        printf("Vector x80\n");
-        printf("Type: System Call\n");
+        sys_calls_handler(eax, ebx, ecx, edx);
     }
 
 }
