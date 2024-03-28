@@ -1,6 +1,20 @@
 #include "paging.h"
-#include "x86_desc.h"
 #include "lib.h"
+
+void pdt_entry_page_setup(pdt_entry_page_t* page, uint32_t physical_memory_22_31) {
+    page->p = 1;          // Present; the page is present in memory
+    page->rw = 1;         // Read/Write; the page is writable
+    page->us = 0;         // User/Supervisor; the page is only accessible from supervisor mode
+    page->pwt = 0;        // Page Write-Through; disabled for performance
+    page->pcd = 0;        // Page Cache Disable; caching enabled
+    page->a = 0;          // Accessed; not accessed yet
+    page->d = 0;          // Dirty; not written to yet (irrelevant for PD entries)
+    page->ps = 1;         // Page Size; enables 4MB pages
+    page->g = 0;          // Global; not global (irrelevant for PD entries without PGE)
+    page->pat = 0;        // Page Attribute Table; not used here
+    page->reserved = 0;   // Reserved bits; must be 0
+    page->address_22_31 = physical_memory_22_31; // The physical address bits 22-31 of the 4MB page frame
+}
 
 /*
  * setup_kernel_paging

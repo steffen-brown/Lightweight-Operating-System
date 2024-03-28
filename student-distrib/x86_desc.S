@@ -14,7 +14,7 @@
 .globl gdt_ptr
 .globl idt_desc_ptr, idt
 .global pdt, pt0
-.globl load_page_directory, enable_paging_bit
+.globl load_page_directory, enable_paging_bit, flush_tlb
 
 .align 4
 
@@ -228,6 +228,19 @@ enable_paging_bit:
     movl %cr0, %eax     # Move the current value of CR0 into EAX.
     or $0x80000000, %eax # OR EAX with 0x80000000 to set the paging enable bit.
     movl %eax, %cr0     # Write the new value back to CR0.
+
+    movl %ebp, %esp     # Restore the stack pointer.
+    popl %ebp           # Restore the base pointer.
+    ret                 # Return from the function.
+
+
+flush_tlb:
+    pushl %ebp          # Save the base pointer.
+    movl %esp, %ebp     # Set the base pointer to the current stack pointer.
+
+    movl	%cr3,%eax
+	movl	%eax,%cr3   # Flush TLB
+
     movl %ebp, %esp     # Restore the stack pointer.
     popl %ebp           # Restore the base pointer.
     ret                 # Return from the function.

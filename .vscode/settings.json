@@ -9,6 +9,8 @@
         "__locale": "c",
         "ostream": "c",
         "sys_calls.h": "c",
-        "sys_call.h": "c"
+        "sys_call.h": "c",
+        "algorithm": "c",
+        "x86_desc.h": "c"
     }
 }

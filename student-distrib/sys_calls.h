@@ -2,6 +2,11 @@
 #define SYSCALL_H
 
 #include "types.h"
+#include "file_sys.h"
+#include "paging.h"
+#include "x86_desc.h"
+
+#define PROGRAM_START 0x08048000;
 
 extern int32_t halt(uint32_t status);
 extern int32_t execute(const uint8_t* command);
