@@ -32,8 +32,8 @@ void keyboard_init(void);
 /* handles keyboard interrupts and prints typed input to screen */
 void keyboard_handler(void);
 
-extern int terminal_read(void* buffer, uint32_t bytes);
-extern int terminal_write(void* buffer, uint32_t bytes);
+extern int terminal_read(void* buffer, int32_t bytes);
+extern int terminal_write(const void* buffer, int32_t bytes);
 
 extern int terminal_open();
 extern int terminal_close();

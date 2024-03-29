@@ -11,6 +11,8 @@
         "sys_calls.h": "c",
         "sys_call.h": "c",
         "algorithm": "c",
-        "x86_desc.h": "c"
+        "x86_desc.h": "c",
+        "__tuple": "c",
+        "array": "c"
     }
 }
