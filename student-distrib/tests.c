@@ -174,7 +174,6 @@ void rtc_frequency_test() {
 	rtc_close();
 	disable_irq(8);
 
-	print_one_test = 0;
 	clear();
 }
 
@@ -291,6 +290,12 @@ int file_read_test(char * file){
 				putc(buf[i]);
 
 		}
+
+		printf("%x\n", buf[23]);
+		printf("%x\n", buf[24]);
+		printf("%x\n", buf[25]);
+		printf("%x\n", buf[26]);
+		printf("%x\n", buf[27]);
 	}
 
 	printf("\n");
@@ -457,58 +462,58 @@ void launch_tests(){
 	/* --------------Checkpoint 2 Tests-------------- */
 	
 
-	// RTC Test
-	rtc_frequency_test();
+	// // RTC Test
+	// rtc_frequency_test();
 
-	// Keyboard Test
-	keyboard_test();
+	// // Keyboard Test
+	// keyboard_test();
 
-	// Test opening a VALID file
-	file_open_test_pos();
+	// // Test opening a VALID file
+	// file_open_test_pos();
 
-	clear_wait(10);
+	// clear_wait(10);
 
-	// Test opening and INVALID file
-	file_open_test_neg();
+	// // Test opening and INVALID file
+	// file_open_test_neg();
 
-	clear_wait(10);
+	// clear_wait(10);
 
-	// Read and print the directory files
-	dir_read_test();
+	// // Read and print the directory files
+	// dir_read_test();
 
-	clear_wait(10);
+	// clear_wait(10);
 	
-	// Read and print GREP executable
-	char file1[] = "grep";
+	// // Read and print GREP executable
+	char file1[] = "shell";
 	file_read_test(file1);
 
-	clear_wait(10);
+	// clear_wait(10);
 
-	// Read and print fish frame text file
-	char file2[] = "frame0.txt";
-	file_read_test(file2);
+	// // Read and print fish frame text file
+	// char file2[] = "frame0.txt";
+	// file_read_test(file2);
 
-	clear_wait(10);
+	// clear_wait(10);
 
-	// Try to read and print a very long text file with an invalid suffix
-	char file3[] = "verylargetextwithverylongname.txt";
-	file_read_test(file3);
+	// // Try to read and print a very long text file with an invalid suffix
+	// char file3[] = "verylargetextwithverylongname.txt";
+	// file_read_test(file3);
 
-	clear_wait(10);
+	// clear_wait(10);
 
-	// Read and print a very long text file with an valid suffix
-	char file4[] = "verylargetextwithverylongname.tx";
-	file_read_test(file4);
+	// // Read and print a very long text file with an valid suffix
+	// char file4[] = "verylargetextwithverylongname.tx";
+	// file_read_test(file4);
 
-	clear_wait(10);
+	// clear_wait(10);
 
-	// Attempt and fail to write to a file
-	char write[] = "holaAmigos";
-	file_write_test(write);
+	// // Attempt and fail to write to a file
+	// char write[] = "holaAmigos";
+	// file_write_test(write);
 
-	clear_wait(10);
+	// clear_wait(10);
 	
-	// Attempt and fail to write to a directory
-	dir_write_test(write);
+	// // Attempt and fail to write to a directory
+	// dir_write_test(write);
 	
 }

@@ -220,6 +220,7 @@ void setup_IDT() {
     // Additional entry setup for system call
     SET_IDT_ENTRY(entry, system_call_linkage);
     set_IDT_entry_metadata(&entry, trap);
+    entry.dpl = 3;
     idt[0x80] = entry; // Syscall interrupt vector
 }
 

@@ -1,7 +1,7 @@
 #include "sys_calls.h"
 
 int32_t halt(uint32_t status) {
-    return 0;
+    //ProcessControlBlock* current_pcb = 
 }
 
 
@@ -38,18 +38,22 @@ int32_t execute(const uint8_t* command) {
     dir_entry_t cur_dentry;
 
     int file_length;
-    uint8_t file_buffer[sizeof(int32_t)];
+    uint8_t file_buffer[40000];
 
     int args_idx;
-    for (args_idx = 0; command[args_idx] != ' '; args_idx++) { // get file name from command argument
+    for (args_idx = 0; command[args_idx] != ' ' && command[args_idx] != '\0'; args_idx++) { // get file name from command argument
         file_name[args_idx] = command[args_idx];
     }
 
+    if (command[args_idx] == '\0') {
+        file_name[args_idx] = '\0'; // Temp solution
+    }
+    
     if (read_dentry_by_name(file_name, &cur_dentry) == -1) { // check if executable file exists
         return -1;
     }
 
-    if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, sizeof(int32_t))) == -1) { // check if inode is valid
+    if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 40000)) == -1) { // check if inode is valid
         return -1; 
     }
 
@@ -61,7 +65,7 @@ int32_t execute(const uint8_t* command) {
         return -1;
     }
     int new_PID = active_pcb; // The PID of the process that is being execuated
-    active_pcb++;
+    new_PID++;
 
     // Shell: PID 1
     // Other: PID 2
@@ -71,14 +75,14 @@ int32_t execute(const uint8_t* command) {
     if(new_PID == 1) {
         // Set up page table entry pointing mapping 128mb (virtual) to 8mb (phyiscal)
         // populate table entry
-        pdt_entry_page_setup(&new_page, 0x2);
+        pdt_entry_page_setup(&new_page, 0x2, 1);
     } else if(new_PID == 2) {
         // Set up page table entry pointing mapping 128mb (virtual) to 12mb (phyiscal)
         // populate table entry
-        pdt_entry_page_setup(&new_page, 0x3);
+        pdt_entry_page_setup(&new_page, 0x3, 1);
     }
     // Update virtual memory address 128mb
-    pdt[31] = new_page.val;
+    pdt[32] = new_page.val;
     flush_tlb();
 
     tss.esp0 = 0x800000 - new_PID * 0x2000; // Update the new stack pointer ESP_new = 8MB - PID * 8KB
@@ -109,9 +113,9 @@ int32_t execute(const uint8_t* command) {
     // Set up context switch
     uint32_t ss = USER_DS;
     uint32_t esp = 0x8400000;
-    uint32_t eflags = 0x00000200;
+    uint32_t eflags = 0x00000202; // 202
     uint32_t cs = USER_CS;
-    uint32_t eip = 0 | (uint32_t)file_buffer[23] << 24 | (uint32_t)file_buffer[24] << 16 | (uint32_t)file_buffer[25] << 8 | (uint32_t)file_buffer[26];
+    uint32_t eip = 0 | (uint32_t)file_buffer[27] << 24 | (uint32_t)file_buffer[26] << 16 | (uint32_t)file_buffer[25] << 8 | (uint32_t)file_buffer[24];
 
     // Context switch
     asm volatile (
@@ -124,12 +128,14 @@ int32_t execute(const uint8_t* command) {
         // put esp in kernalStackTop
         // put eip in execReturnAddr
 
-        "iret\n"          // Return from interrupt
         : 
         : "r" (ss), "r" (esp), "r" (eflags), "r" (cs), "r" (eip)
         : "memory"
     );
 
+    asm volatile (
+        "iret\n"          // Return from interrupt
+    );
 
     return 0;
 }
@@ -146,6 +152,8 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 
 
 int32_t open(const uint8_t* filename) {
+    // Sets up file descriptor
+    // Calls file_open
     return 0;
 }
 

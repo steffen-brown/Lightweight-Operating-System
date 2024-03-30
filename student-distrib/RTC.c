@@ -12,8 +12,6 @@
 
 volatile int rtc_flag;
 
-int print_one_test = 1;
-
 /*
  * RTC_init
  *   DESCRIPTION: Initializes the Real-Time Clock (RTC) by enabling RTC interrupts. This function
@@ -51,8 +49,6 @@ void RTC_init() {
 void RTC_handler() {
 	cli(); // Disable interrupts
 	//test_interrupts(); // Call screen flash
-	if(print_one_test)
-		putc('1'); // Print 1
 	if(screen_x == 79) {
 		putc('\n');
 	}

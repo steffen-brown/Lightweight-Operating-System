@@ -1,10 +1,10 @@
 #include "paging.h"
 #include "lib.h"
 
-void pdt_entry_page_setup(pdt_entry_page_t* page, uint32_t physical_memory_22_31) {
+void pdt_entry_page_setup(pdt_entry_page_t* page, uint32_t physical_memory_22_31, uint32_t user) {
     page->p = 1;          // Present; the page is present in memory
     page->rw = 1;         // Read/Write; the page is writable
-    page->us = 0;         // User/Supervisor; the page is only accessible from supervisor mode
+    page->us = user;         // User/Supervisor; the page is only accessible from supervisor mode
     page->pwt = 0;        // Page Write-Through; disabled for performance
     page->pcd = 0;        // Page Cache Disable; caching enabled
     page->a = 0;          // Accessed; not accessed yet
@@ -32,19 +32,7 @@ void pdt_entry_page_setup(pdt_entry_page_t* page, uint32_t physical_memory_22_31
 void setup_kernel_paging() {
     pdt_entry_page_t kernal_page;
 
-    // Setup a Page Directory entry for kernel space
-    kernal_page.p = 1;          // Present; the page is present in memory
-    kernal_page.rw = 1;         // Read/Write; the page is writable
-    kernal_page.us = 0;         // User/Supervisor; the page is only accessible from supervisor mode
-    kernal_page.pwt = 0;        // Page Write-Through; disabled for performance
-    kernal_page.pcd = 0;        // Page Cache Disable; caching enabled
-    kernal_page.a = 0;          // Accessed; not accessed yet
-    kernal_page.d = 0;          // Dirty; not written to yet (irrelevant for PD entries)
-    kernal_page.ps = 1;         // Page Size; enables 4MB pages
-    kernal_page.g = 0;          // Global; not global (irrelevant for PD entries without PGE)
-    kernal_page.pat = 0;        // Page Attribute Table; not used here
-    kernal_page.reserved = 0;   // Reserved bits; must be 0
-    kernal_page.address_22_31 = 1; // The physical address bits 22-31 of the 4MB page frame
+    pdt_entry_page_setup(&kernal_page, 0x01, 0);
 
     pdt[1] = kernal_page.val;   // Maps the second 4MB of virtual memory to a 4MB page in PDT
 
