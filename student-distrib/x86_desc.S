@@ -169,7 +169,24 @@ INT_LINKAGE(machine_check_linkage, exc_handler, 0x12, error_code) # 0x12: Machin
 INT_LINKAGE(SIMD_floating_point_linkage, exc_handler, 0x13, error_code) # 0x13: SIMD Floating-Point Exception
 
 # Create interrupt linkage for system calls
-INT_LINKAGE(system_call_linkage, exc_handler, 0x80, no_error_code) # 0x80: System call vector
+system_call_linkage:
+    pushfl
+    push %ebx
+    push %ecx
+    push %edx
+    push %esi
+    push %edi
+    push %ebp
+    call sys_calls_handler
+    pop %ebp
+    pop %edi
+    pop %esi
+    pop %edx
+    pop %ecx
+    pop %ebx
+    popfl
+    iret
+
 
 # Allocate space for the paging directory table (init w/ 0s)
 .align 4096

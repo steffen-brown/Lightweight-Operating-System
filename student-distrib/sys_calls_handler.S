@@ -1,4 +1,5 @@
 .global sys_calls_handler
+.global sys_calls_handler_end
 
 sys_calls_handler:
     pushl   %ebp 
@@ -8,33 +9,31 @@ sys_calls_handler:
     pushl   %esi 
     pushl   %edi /* Save callee saved registers */
 
-    movl    8(%ebp), %eax /* Load call number */
-
     cmpl    $1, %eax
     jl      return_error /* If call number < 1, error */
     cmpl    $10, %eax
     jg      return_error /* If call number > 10, error */
 
-    pushl   20(%ebp)
-    pushl   16(%ebp)
-    pushl   12(%ebp)
+    pushl   %edx
+    pushl   %ecx
+    pushl   %ebx
+
+    pushl $0 /* Maintain c calling convention stack spacing for function args */
 
     jmp     *jump_table(, %eax, 4) /* Jump to the appropriate syscall */
-    movl    $0, %eax
-    jmp     sys_calls_handler_end
 
 return_error:
     movl    $-1, %eax  /* return with error value */
     jmp     sys_calls_handler_end
 
 sys_calls_handler_end:
-    addl    $12, %esp /* pop arguments */
+    addl    $20, %esp /* pop arguments */
 
     popl    %ebx 
     popl    %esi 
     popl    %edi /* Restore callee saved registers */
 
-    leave
+    popl %ebp
     ret
 
 jump_table:

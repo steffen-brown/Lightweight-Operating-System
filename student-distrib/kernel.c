@@ -144,7 +144,7 @@ void entry(unsigned long magic, unsigned long addr) {
         tss.esp0 = 0x800000;
         ltr(KERNEL_TSS);
     }
-    setup_kernel_paging(); // Map the kernal and video memory to pages
+    setup_kernel_paging(); // Map the kernel and video memory to pages
     enable_paging(); // Enable paging on the OS
 
     // Sets up IDT

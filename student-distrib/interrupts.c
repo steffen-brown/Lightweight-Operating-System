@@ -84,8 +84,6 @@ void exc_handler(int vector) {
     }
     else if(vector == 0x21) { // 0x21: Keyboard interrupt vector number
         keyboard_handler();
-    } else if (vector == 0x80) { // 0x80: System Call vector number
-        sys_calls_handler(eax, ebx, ecx, edx);
     }
 
 }

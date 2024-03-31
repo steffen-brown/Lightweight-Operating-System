@@ -1,7 +1,8 @@
 #include "sys_calls.h"
 
 int32_t halt(uint32_t status) {
-    //ProcessControlBlock* current_pcb = 
+
+    return 0;
 }
 
 
@@ -50,19 +51,35 @@ int32_t execute(const uint8_t* command) {
     }
     
     if (read_dentry_by_name(file_name, &cur_dentry) == -1) { // check if executable file exists
-        return -1;
+        asm volatile (
+        "movl %ebp, %esp\n"
+        "movl $-1, %eax\n"
+        "jmp sys_calls_handler_end\n"
+    );
     }
 
     if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 40000)) == -1) { // check if inode is valid
-        return -1; 
+        asm volatile (
+        "movl %ebp, %esp\n"
+        "movl $-1, %eax\n"
+        "jmp sys_calls_handler_end\n"
+    );
     }
 
     if (file_buffer[0] != 0x7f || file_buffer[1] != 0x45 || file_buffer[2] != 0x4c || file_buffer[3] != 0x46) { // check ELF for exe
-        return -1;
+        asm volatile (
+        "movl %ebp, %esp\n"
+        "movl $-1, %eax\n"
+        "jmp sys_calls_handler_end\n"
+    );
     }
 
     if(active_pcb + 1 > 2) { // Limit the number of processes running to 2
-        return -1;
+        asm volatile (
+        "movl %ebp, %esp\n"
+        "movl $0, %eax\n"
+        "jmp sys_calls_handler_end\n"
+    );
     }
     int new_PID = active_pcb; // The PID of the process that is being execuated
     new_PID++;
@@ -89,12 +106,7 @@ int32_t execute(const uint8_t* command) {
     // Maybe update tss.ebp
 
     // Load the file into the correct memory location
-    int i;
-    uint8_t* program_page_memory = (uint8_t *)PROGRAM_START;
-
-    for(i = 0; i < file_length; i++) {
-        program_page_memory[i] = file_buffer[i];
-    }
+    memcpy((void*)PROGRAM_START, (void*)file_buffer, 5606);
 
     // Create PCB at top of new process kernal stack
     ProcessControlBlock* new_PCB = (void*)(0x800000 - (new_PID + 1) * 0x2000); // Could be wrong
@@ -112,7 +124,7 @@ int32_t execute(const uint8_t* command) {
 
     // Set up context switch
     uint32_t ss = USER_DS;
-    uint32_t esp = 0x8400000;
+    uint32_t esp = 0x8400000 - 4;
     uint32_t eflags = 0x00000202; // 202
     uint32_t cs = USER_CS;
     uint32_t eip = 0 | (uint32_t)file_buffer[27] << 24 | (uint32_t)file_buffer[26] << 16 | (uint32_t)file_buffer[25] << 8 | (uint32_t)file_buffer[24];
@@ -137,16 +149,58 @@ int32_t execute(const uint8_t* command) {
         "iret\n"          // Return from interrupt
     );
 
+    asm volatile (
+        "jmp sys_calls_handler_end"
+    );
+
     return 0;
 }
 
 
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
+    ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
+    current_pcb->files[fd].operationsTable.read(buf, nbytes);
+
+    asm volatile (
+        "movl %ebp, %esp\n"
+        "jmp sys_calls_handler_end\n"
+    );
+
     return 0;
 }
 
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
+    ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
+    current_pcb->files[fd].operationsTable.write(buf, nbytes);
+
+    asm volatile (
+        "movl %ebp, %esp\n"
+        "jmp sys_calls_handler_end\n"
+    );
+
     return 0;
 }
 
