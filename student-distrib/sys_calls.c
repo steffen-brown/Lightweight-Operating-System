@@ -158,6 +158,10 @@ int32_t execute(const uint8_t* command) {
 
 
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
+    if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
+        return -1;
+    }
+
     ProcessControlBlock* current_pcb;
     // Assembly code to get the current PCB
     // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
@@ -182,6 +186,10 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
+    if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
+        return -1;
+    }
+
     ProcessControlBlock* current_pcb;
     // Assembly code to get the current PCB
     // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
