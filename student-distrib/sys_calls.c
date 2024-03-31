@@ -20,6 +20,24 @@ const FileDescriptor stdin_fd = {
     .flags = 0 // Blank flags
 };
 
+FileOperationsTable rtc_operations_table = {
+    .read = rtc_read,
+    .write = rtc_write,
+    .open = rtc_open,
+    .close = rtc_close
+};
+FileOperationsTable dir_operations_table = {
+    .read = dir_read,
+    .write = dir_write,
+    .open = dir_open,
+    .close = dir_close
+};
+FileOperationsTable file_operations_table = {
+    .read = file_read,
+    .write = file_write,
+    .open = file_open,
+    .close = file_close
+};
 const FileDescriptor stdout_fd = {
     .operationsTable = {
         .read = NULL,
@@ -212,16 +230,79 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     return 0;
 }
 
-
+// add element to filearray at the first available index
 int32_t open(const uint8_t* filename) {
     // Sets up file descriptor
     // Calls file_open
-    return 0;
+    ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+    uint32_t i = 0;
+    for (i  = 2; i < 8; i++) {
+        if (current_pcb->files[i].flags == 0) { // Check if file descriptor is available
+            break;
+        }
+    }
+    if (i == 8) { // No available file descriptors
+        return -1;
+    }
+    dir_entry_t dentry;
+    if (read_dentry_by_name(filename, &dentry) == -1) // get dentry
+        return -1;
+    // get the file type
+    uint32_t file_type = dentry.file_type;
+    if ( file_type == 0) { // RTC file
+        current_pcb->files[i].operationsTable = rtc_operations_table;
+        current_pcb->files[i].filePosition = 0;
+        current_pcb->files[i].flags = 1;
+        return i;
+    } else if (file_type == 1) { // Directory file
+        current_pcb->files[i].operationsTable = dir_operations_table;
+        current_pcb->files[i].filePosition = 0;
+        current_pcb->files[i].flags = 1;
+        return i;
+    } else if (file_type == 2) { // Regular file
+        current_pcb->files[i].operationsTable = file_operations_table;
+        current_pcb->files[i].inode = dentry.inode_num;
+        current_pcb->files[i].filePosition = 0;
+        current_pcb->files[i].flags = 1;
+        return i;
+    }
+    
+    
+    return -1;
 }
 
 
 int32_t close(int32_t fd) {
-    return 0;
+    // check if fd less than 2 or greater than 7
+    if (fd < 2 || fd > 7) {
+        return -1;
+    }
+    ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+    if (current_pcb->files[fd].flags == 0) {
+        return -1;
+    }
+    current_pcb->files[fd].flags = 0;
+    current_pcb->files[fd].operationsTable.close(fd);
 }
 
 
