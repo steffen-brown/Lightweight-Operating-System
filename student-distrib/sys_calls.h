@@ -52,6 +52,14 @@ typedef struct ProcessControlBlock {
 } ProcessControlBlock;
 
 
-
+#define RETURN(VALUE) \
+    asm volatile ( \
+        "movl %%ebp, %%esp\n\t" /* Correctly set up the stack pointer */ \
+        "movl %0, %%eax\n\t" /* Move VALUE into %eax, preparing for return */ \
+        "jmp sys_calls_handler_end\n\t" /* Jump to the end of syscalls handler */ \
+        : /* No output operands */ \
+        : "r" (VALUE) /* Input operand: VALUE in any general-purpose register */ \
+        : "%eax", "%esp" /* Clobber list: We're modifying %eax and potentially %esp */ \
+    ); \
 
 #endif /* SYSCALL_H */

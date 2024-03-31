@@ -69,35 +69,19 @@ int32_t execute(const uint8_t* command) {
     }
     
     if (read_dentry_by_name(file_name, &cur_dentry) == -1) { // check if executable file exists
-        asm volatile (
-        "movl %ebp, %esp\n"
-        "movl $-1, %eax\n"
-        "jmp sys_calls_handler_end\n"
-    );
+        RETURN(-1);
     }
 
     if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 40000)) == -1) { // check if inode is valid
-        asm volatile (
-        "movl %ebp, %esp\n"
-        "movl $-1, %eax\n"
-        "jmp sys_calls_handler_end\n"
-    );
+        RETURN(-1);
     }
 
     if (file_buffer[0] != 0x7f || file_buffer[1] != 0x45 || file_buffer[2] != 0x4c || file_buffer[3] != 0x46) { // check ELF for exe
-        asm volatile (
-        "movl %ebp, %esp\n"
-        "movl $-1, %eax\n"
-        "jmp sys_calls_handler_end\n"
-    );
+        RETURN(-1);
     }
 
     if(active_pcb + 1 > 2) { // Limit the number of processes running to 2
-        asm volatile (
-        "movl %ebp, %esp\n"
-        "movl $0, %eax\n"
-        "jmp sys_calls_handler_end\n"
-    );
+        RETURN(0);
     }
     int new_PID = active_pcb; // The PID of the process that is being execuated
     new_PID++;
@@ -192,12 +176,9 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    current_pcb->files[fd].operationsTable.read(buf, nbytes);
+    int bytes = current_pcb->files[fd].operationsTable.read(buf, nbytes);
 
-    asm volatile (
-        "movl %ebp, %esp\n"
-        "jmp sys_calls_handler_end\n"
-    );
+    RETURN(bytes);
 
     return 0;
 }
@@ -205,7 +186,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
-        return -1;
+        RETURN(-1)
     }
 
     ProcessControlBlock* current_pcb;
@@ -220,12 +201,9 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    current_pcb->files[fd].operationsTable.write(buf, nbytes);
+    int bytes = current_pcb->files[fd].operationsTable.write(buf, nbytes);
 
-    asm volatile (
-        "movl %ebp, %esp\n"
-        "jmp sys_calls_handler_end\n"
-    );
+    RETURN(bytes);
 
     return 0;
 }
@@ -252,40 +230,40 @@ int32_t open(const uint8_t* filename) {
         }
     }
     if (i == 8) { // No available file descriptors
-        return -1;
+        RETURN(-1);
     }
     dir_entry_t dentry;
     if (read_dentry_by_name(filename, &dentry) == -1) // get dentry
-        return -1;
+        RETURN(-1);
     // get the file type
     uint32_t file_type = dentry.file_type;
     if ( file_type == 0) { // RTC file
         current_pcb->files[i].operationsTable = rtc_operations_table;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
-        return i;
+        RETURN(i);
     } else if (file_type == 1) { // Directory file
         current_pcb->files[i].operationsTable = dir_operations_table;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
-        return i;
+        RETURN(i);
     } else if (file_type == 2) { // Regular file
         current_pcb->files[i].operationsTable = file_operations_table;
         current_pcb->files[i].inode = dentry.inode_num;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
-        return i;
+        RETURN(i);
     }
     
     
-    return -1;
+    RETURN(-1);
 }
 
 
 int32_t close(int32_t fd) {
     // check if fd less than 2 or greater than 7
     if (fd < 2 || fd > 7) {
-        return -1;
+        RETURN(-1);
     }
     ProcessControlBlock* current_pcb;
     // Assembly code to get the current PCB
@@ -299,7 +277,7 @@ int32_t close(int32_t fd) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
     if (current_pcb->files[fd].flags == 0) {
-        return -1;
+        RETURN(-1);
     }
     current_pcb->files[fd].flags = 0;
     current_pcb->files[fd].operationsTable.close(fd);
