@@ -1,5 +1,6 @@
 .global sys_calls_handler
 .global sys_calls_handler_end
+.global halt_return
 
 sys_calls_handler:
     pushl   %ebp 
@@ -39,4 +40,11 @@ sys_calls_handler_end:
 jump_table:
         .long 0x1, halt, execute, read, write, open, close, getargs, vidmap, set_handler, sigreturn
 
+/* define halt_return(parent_esp, parent_ebp, ret_val) */
+halt_return:
+    movl 12(%esp), %eax
+    movl 8(%esp), %ebp
 
+    movl %ebp, %esp
+    jmp sys_calls_handler_end
+    

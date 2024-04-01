@@ -32,10 +32,10 @@ void keyboard_init(void);
 /* handles keyboard interrupts and prints typed input to screen */
 void keyboard_handler(void);
 
-extern int terminal_read(void* buffer, int32_t bytes);
-extern int terminal_write(const void* buffer, int32_t bytes);
+extern int terminal_read(int32_t fd, void* buffer, int32_t bytes);
+extern int terminal_write(int32_t fd, const void* buffer, int32_t bytes);
 
-extern int terminal_open();
-extern int terminal_close();
+extern int terminal_open(const uint8_t* filename);
+extern int terminal_close(int32_t fd);
 
 #endif

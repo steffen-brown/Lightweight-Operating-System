@@ -2,6 +2,7 @@
 #define FILE_SYS_H
 
 #include "lib.h"
+#include "sys_calls.h"
 
 // Constants
 #define BLOCK_SIZE 4096                                         // Block size in bytes (4kB)

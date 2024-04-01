@@ -1,31 +1,72 @@
 #include "sys_calls.h"
 
+static int active_pcb = 0;
+
 int32_t halt(uint32_t status) {
+    ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+    
+    int i;
+    // Close any open files
+    for (i = 0; i < 8; i++) {
+        if (current_pcb->files[i].flags != 0) { // '0' means the file is not in use
+
+            if (current_pcb->files[i].operationsTable.close != NULL) {
+                current_pcb->files[i].operationsTable.close(i);
+            }
+            current_pcb->files[i].flags = 0; // Mark as unused
+        }
+    }
+
+    // Update exit status
+    current_pcb->exitStatus = status;
+
+    // check if the current process is the shell
+    if (current_pcb->processID == 1) {
+        // If the current process is the shell, restart the shell
+        execute((uint8_t*)"shell");
+    } else {
+        pdt_entry_page_t new_page;
+        // If the current process is not the shell, return to the parent process
+        // Restore parent paging
+        pdt_entry_page_setup(&new_page, 0x2, 1);
+        pdt[32] = new_page.val; // Restore parent paging
+        flush_tlb();
+
+        // Restore parent stack pointer
+        tss.esp0 = (uint32_t)(0x800000 - (current_pcb->parentProcessID ) * 0x2000);
+        tss.ss0 = KERNEL_DS;
+        // Restore parent process control block
+        active_pcb--;
+    }
+    // unmap paging for current process
+    // get 10 msb of 32 bit virtual address of 128
+    // uint32_t task_page_dir_index = 0x800000 >> 22;  
+    // pdt_entry_page_t parent_page_table_entry;
+    // pdt_entry_page_setup(&parent_page_table_entry, 0x800000 + (current_pcb->parentProcessID * 0x400000)>>22 ); // right shift 10 + 12 times to get physical address
+    // flush_tlb();
+
+    // pdt[task_page_dir_index] =  parent_page_table_entry.val;
+
+    uint32_t return_value = (uint32_t)(status & 0xFF);
+    uint32_t parent_ebp = (uint32_t)current_pcb->oldEBP; // HAVE TO SAVE THIS IN EXECUTE
+    halt_return(parent_ebp, parent_ebp, return_value);
 
     return 0;
 }
 
 
 
-// Define stdin file descriptor globally
-const FileDescriptor stdin_fd = {
-    .operationsTable = {
-        .read = terminal_read,
-        .write = NULL,
-        .open = terminal_open,
-        .close = terminal_close
-    },
-    .inode = 0, // 0 for RTC and device files
-    .filePosition = 0, // Number reading from file
-    .flags = 0 // Blank flags
-};
 
-FileOperationsTable rtc_operations_table = {
-    .read = rtc_read,
-    .write = rtc_write,
-    .open = rtc_open,
-    .close = rtc_close
-};
 FileOperationsTable dir_operations_table = {
     .read = dir_read,
     .write = dir_write,
@@ -50,7 +91,27 @@ const FileDescriptor stdout_fd = {
     .flags = 0 // Blank flags
 };
 
-static int active_pcb = 0;
+// Define stdin file descriptor globally
+const FileDescriptor stdin_fd = {
+    .operationsTable = {
+        .read = terminal_read,
+        .write = NULL,
+        .open = terminal_open,
+        .close = terminal_close
+    },
+    .inode = 0, // 0 for RTC and device files
+    .filePosition = 0, // Number reading from file
+    .flags = 0 // Blank flags
+};
+
+
+FileOperationsTable rtc_operations_table = {
+    .read = rtc_read,
+    .write = rtc_write,
+    .open = rtc_open,
+    .close = rtc_close
+};
+
 
 int32_t execute(const uint8_t* command) {
     uint8_t file_name[32];
@@ -83,8 +144,7 @@ int32_t execute(const uint8_t* command) {
     if(active_pcb + 1 > 2) { // Limit the number of processes running to 2
         RETURN(0);
     }
-    int new_PID = active_pcb; // The PID of the process that is being execuated
-    new_PID++;
+    int new_PID = ++active_pcb; // The PID of the process that is being execuated
 
     // Shell: PID 1
     // Other: PID 2
@@ -108,7 +168,7 @@ int32_t execute(const uint8_t* command) {
     // Maybe update tss.ebp
 
     // Load the file into the correct memory location
-    memcpy((void*)PROGRAM_START, (void*)file_buffer, 5606);
+    memcpy((void*)PROGRAM_START, (void*)file_buffer, 40000);
 
     // Create PCB at top of new process kernal stack
     ProcessControlBlock* new_PCB = (void*)(0x800000 - (new_PID + 1) * 0x2000); // Could be wrong
@@ -119,10 +179,10 @@ int32_t execute(const uint8_t* command) {
 
     // Add stdin and stdout to the file descriptor array
     new_PCB->files[0] = stdin_fd;
-    stdin_fd.operationsTable.open();
+    new_PCB->files[0].flags = 1;
 
     new_PCB->files[1] = stdout_fd;
-    stdout_fd.operationsTable.open();
+    new_PCB->files[1].flags = 1;
 
     // Set up context switch
     uint32_t ss = USER_DS;
@@ -147,13 +207,14 @@ int32_t execute(const uint8_t* command) {
         : "memory"
     );
 
+    register uint32_t saved_ebp asm("ebp");
+    new_PCB->oldEBP = (void*)saved_ebp;
+
     asm volatile (
         "iret\n"          // Return from interrupt
     );
 
-    asm volatile (
-        "jmp sys_calls_handler_end"
-    );
+    RETURN(0);
 
     return 0;
 }
@@ -176,7 +237,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    int bytes = current_pcb->files[fd].operationsTable.read(buf, nbytes);
+    int bytes = current_pcb->files[fd].operationsTable.read(fd, buf, nbytes);
 
     RETURN(bytes);
 
@@ -201,7 +262,7 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    int bytes = current_pcb->files[fd].operationsTable.write(buf, nbytes);
+    int bytes = current_pcb->files[fd].operationsTable.write(fd, buf, nbytes);
 
     RETURN(bytes);
 
@@ -257,6 +318,8 @@ int32_t open(const uint8_t* filename) {
     
     
     RETURN(-1);
+
+    return 0;
 }
 
 
@@ -280,7 +343,11 @@ int32_t close(int32_t fd) {
         RETURN(-1);
     }
     current_pcb->files[fd].flags = 0;
-    current_pcb->files[fd].operationsTable.close(fd);
+    int ret = current_pcb->files[fd].operationsTable.close(fd);
+
+    RETURN(ret);
+
+    return 0;
 }
 
 

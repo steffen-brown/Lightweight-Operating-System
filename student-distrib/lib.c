@@ -2,6 +2,7 @@
  * vim:ts=4 noexpandtab */
 
 #include "lib.h"
+#include "sys_calls.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
@@ -24,6 +25,21 @@ void clear(void) {
     }
     screen_y = 0;
     screen_x = 0;
+
+    ProcessControlBlock* current_pcb;
+
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
+    if(current_pcb->processID == 1) {
+        printf("391OS> ");
+    }
 }
 
 /* Standard printf().

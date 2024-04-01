@@ -147,8 +147,25 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length
  */
 int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
 {
+     ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+    uint32_t start = current_pcb->files[fd].filePosition;
+    if( current_pcb->files[fd].filePosition >= g_boot_block->num_dir_entries){
+        current_pcb->files[fd].filePosition = 0;
+        return FS_SUCCESS;
+    }
+    current_pcb->files[fd].filePosition++;
     dir_entry_t dentry;
-    int32_t ret = read_dentry_by_index(fd, &dentry);
+    int32_t ret = read_dentry_by_index(start, &dentry);
     if (ret == FS_ERROR)
     {
         return FS_ERROR;
@@ -166,11 +183,9 @@ int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
     }
     // ((uint32_t *)buf)[MAX_FILE_NAME] = dentry.file_type;
     // ((uint32_t *)buf)[MAX_FILE_NAME + 4] = g_inodes[dentry.inode_num].size;
-    return FS_SUCCESS;
+    return i;
     
-
     // Check if the file descriptor index is valid
-
 }
  
 // // helper function to get file type
@@ -251,10 +266,21 @@ int32_t dir_close(int32_t fd)
  */
 int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
 {
-    
-    uint32_t inode_ptr = g_boot_block->dir_entries[fd].inode_num;
+    ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+    uint32_t inode_ptr = current_pcb->files[fd].inode;
+    // uint32_t inode_ptr = g_boot_block->dir_entries[fd].inode_num;
     uint32_t file_size = g_inodes[inode_ptr].size; // size in bytes
-    uint32_t offset = 0;
+    uint32_t offset = current_pcb->files[fd].filePosition;
     int32_t transfer_size = read_data(inode_ptr, offset, buf, file_size);
     if (transfer_size != -1) {
         return transfer_size;

@@ -67,7 +67,7 @@ void RTC_handler() {
  *   RETURN VALUE: 1 indicating success
  *   SIDE EFFECTS: Modifies the rate in register A, affecting interrupt frequency.
  */
-int rtc_open() {
+int rtc_open(const uint8_t* filename) {
 	rtc_flag = 0; // Reset the RTC interrupt flag
 
 	cli(); // Disable interrupts
@@ -91,7 +91,7 @@ int rtc_open() {
  *   RETURN VALUE: 0 indicating success
  *   SIDE EFFECTS: None.
  */
-int rtc_close() {
+int rtc_close(int32_t fd) {
 	return 0; // Success
 }
 
@@ -104,7 +104,7 @@ int rtc_close() {
  *   RETURN VALUE: 0 on success, -1 on failure (invalid frequency)
  *   SIDE EFFECTS: Changes the interrupt rate/frequency of the RTC.
  */
-int rtc_write(const void* buf) {
+int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
 	if(buf == 0) {
 		return -1;
 	}
@@ -151,7 +151,7 @@ int rtc_write(const void* buf) {
  *   RETURN VALUE: 0 indicating success
  *   SIDE EFFECTS: Blocks until an RTC interrupt occurs.
  */
-int rtc_read() {
+int rtc_read(int32_t fd, void* buf, int32_t nbytes) {
 	rtc_flag = 1; // Set the flag to wait for an interrupt
 
 	// Wait for the RTC interrupt handler to clear the flag

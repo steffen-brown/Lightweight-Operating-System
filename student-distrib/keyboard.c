@@ -218,7 +218,7 @@ void keyboard_handler(void) {
  *   RETURN VALUE: The number of characters read into the buffer, excluding the null terminator
  *   SIDE EFFECTS: Blocks execution until the enter key is pressed
  */
-int terminal_read(void* buffer, int32_t bytes) {
+int terminal_read(int32_t fd, void* buffer, int32_t bytes) {
     if(bytes == 0) { // Check if the requested number of bytes to read is 0
         return 0; // If yes, return 0 immediately
     }
@@ -257,7 +257,7 @@ int terminal_read(void* buffer, int32_t bytes) {
  *   RETURN VALUE: The number of bytes successfully written
  *   SIDE EFFECTS: Outputs the contents of the buffer to the terminal
  */
-int terminal_write(const void* buffer, int32_t bytes) {
+int terminal_write(int32_t fd, const void* buffer, int32_t bytes) {
     if (buffer == NULL || bytes == 0) { // Check for invalid buffer or request to write 0 bytes
         return -1; // Return error code -1
     }
@@ -289,7 +289,7 @@ int terminal_write(const void* buffer, int32_t bytes) {
  *   RETURN VALUE: -1 indicating that the function is not implemented
  *   SIDE EFFECTS: None
  */
-int terminal_open() {
+int terminal_open(const uint8_t* filename) {
     return 0;
 }
 
@@ -301,6 +301,6 @@ int terminal_open() {
  *   RETURN VALUE: -1 indicating that the function is not implemented
  *   SIDE EFFECTS: None
  */
-int terminal_close() {
+int terminal_close(int32_t fd) {
     return 0;
 }
