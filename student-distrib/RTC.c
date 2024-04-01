@@ -1,4 +1,4 @@
-#include "RTC.h"
+#include "rtc.h"
 #include "lib.h"
 #include "i8259.h"
 

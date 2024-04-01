@@ -48,15 +48,7 @@ int32_t halt(uint32_t status) {
         // Restore parent process control block
         active_pcb--;
     }
-    // unmap paging for current process
-    // get 10 msb of 32 bit virtual address of 128
-    // uint32_t task_page_dir_index = 0x800000 >> 22;  
-    // pdt_entry_page_t parent_page_table_entry;
-    // pdt_entry_page_setup(&parent_page_table_entry, 0x800000 + (current_pcb->parentProcessID * 0x400000)>>22 ); // right shift 10 + 12 times to get physical address
-    // flush_tlb();
-
-    // pdt[task_page_dir_index] =  parent_page_table_entry.val;
-
+    
     uint32_t return_value = (uint32_t)(status & 0xFF);
     uint32_t parent_ebp = (uint32_t)current_pcb->oldEBP; // HAVE TO SAVE THIS IN EXECUTE
     halt_return(parent_ebp, parent_ebp, return_value);
@@ -222,7 +214,10 @@ int32_t execute(const uint8_t* command) {
 
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
-        return -1;
+        RETURN(-1);
+    }
+    if ( fd == 1){
+        RETURN(-1);
     }
 
     ProcessControlBlock* current_pcb;
@@ -247,12 +242,13 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
-        RETURN(-1)
+        RETURN(-1);
+    }
+    if ( fd == 0){
+        RETURN(-1);
     }
 
     ProcessControlBlock* current_pcb;
-    // Assembly code to get the current PCB
-    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
     asm volatile (
         "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
         "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary

@@ -6,7 +6,7 @@
 #include "x86_desc.h"
 #include "lib.h"
 #include "i8259.h"
-#include "RTC.h"
+#include "rtc.h"
 #include "debug.h"
 #include "tests.h"
 #include "interrupts.h"
