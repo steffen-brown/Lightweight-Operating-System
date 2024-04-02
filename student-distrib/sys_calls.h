@@ -9,12 +9,12 @@
 #include "rtc.h"
 #define PROGRAM_START 0x08048000
 
-extern int32_t halt(uint32_t status);
-extern int32_t execute(const uint8_t* command);
-extern int32_t read(int32_t fd, void* buf, int32_t nbytes);
-extern int32_t write(int32_t fd, const void* buf, int32_t nbytes);
-extern int32_t open(const uint8_t* filename);
-extern int32_t close(int32_t fd);
+extern int32_t halt(uint32_t status); // Halts the current system call
+extern int32_t execute(const uint8_t* command); // executes the called sys call
+extern int32_t read(int32_t fd, void* buf, int32_t nbytes); // reads data from a file or device
+extern int32_t write(int32_t fd, const void* buf, int32_t nbytes); // writes data to screen
+extern int32_t open(const uint8_t* filename); // opens a file
+extern int32_t close(int32_t fd); // closes a file
 extern int32_t getargs(uint8_t* buf, int32_t nbytes);
 extern int32_t vidmap(uint8_t** screen_start);
 extern int32_t set_handler(int32_t signum, void* handler_address);
@@ -25,6 +25,7 @@ typedef int (*write_func)(int32_t fd, const void* buf, int32_t nbytes);
 typedef int (*open_func)(const uint8_t* filename);
 typedef int (*close_func)(int32_t fd);
 
+// initializes file operations table struct
 typedef struct FileOperationsTable {
     read_func read;
     write_func write;
@@ -32,6 +33,7 @@ typedef struct FileOperationsTable {
     close_func close;
 } FileOperationsTable;
 
+// initializes file descriptor table struct
 typedef struct FileDescriptor {
     FileOperationsTable operationsTable;
     uint32_t inode;
@@ -39,6 +41,7 @@ typedef struct FileDescriptor {
     uint32_t flags;
 } FileDescriptor;
 
+// initializes process control block struct
 typedef struct ProcessControlBlock {
     int processID;                   // Unique process identifier
     int exitStatus;                  // Exit status of the process

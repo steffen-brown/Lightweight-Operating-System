@@ -2,6 +2,13 @@
 
 static int active_pcb = 0;
 
+/*
+ * int32_t halt(uint32_t status)
+ *  DESCRIPTION: Halts the current system call
+ *  INPUTS: the status of the current system
+ *  RETURN VALUE: 0
+ *  SIDE EFFECTS: terminates a process
+ */
 int32_t halt(uint32_t status) {
     ProcessControlBlock* current_pcb;
     // Assembly code to get the current PCB
@@ -57,8 +64,6 @@ int32_t halt(uint32_t status) {
 }
 
 
-
-
 FileOperationsTable dir_operations_table = {
     .read = dir_read,
     .write = dir_write,
@@ -105,6 +110,13 @@ FileOperationsTable rtc_operations_table = {
 };
 
 
+/*
+ * int32_t execute(const uint8_t* command)
+ *  DESCRIPTION: executes the called sys call based on input cmd
+ *  INPUTS: input cmd
+ *  RETURN VALUE: -1 if cmd invalid
+ *  SIDE EFFECTS: executes a process
+ */
 int32_t execute(const uint8_t* command) {
     uint8_t file_name[32];
     dir_entry_t cur_dentry;
@@ -211,7 +223,13 @@ int32_t execute(const uint8_t* command) {
     return 0;
 }
 
-
+/*
+ * int32_t read(int32_t fd, void* buf, int32_t nbytes)
+ *  DESCRIPTION: reads data from a file or device
+ *  INPUTS: file descriptor, buffer containing data to read from, num of bytes to be read
+ *  RETURN VALUE: -1 if invalid read
+ *  SIDE EFFECTS: NONE
+ */
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
         RETURN(-1);
@@ -239,7 +257,13 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     return 0;
 }
 
-
+/*
+ * int32_t write(int32_t fd, const void* buf, int32_t nbytes)
+ *  DESCRIPTION: writes data to screen
+ *  INPUTS: file descriptor, buffer containing data to write to, num of bytes to write
+ *  RETURN VALUE: -1 if invalid write
+ *  SIDE EFFECTS: Prints to terminal
+ */
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
         RETURN(-1);
@@ -265,7 +289,13 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     return 0;
 }
 
-// add element to filearray at the first available index
+/*
+ * int32_t open(const uint8_t* filename)
+ *  DESCRIPTION: opens a file
+ *  INPUTS: name of file
+ *  RETURN VALUE: -1 if invalid open
+ *  SIDE EFFECTS: Sets up file descriptor for opened file
+ */
 int32_t open(const uint8_t* filename) {
     // Sets up file descriptor
     // Calls file_open
@@ -318,7 +348,13 @@ int32_t open(const uint8_t* filename) {
     return 0;
 }
 
-
+/*
+ * int32_t close(int32_t fd)
+ *  DESCRIPTION: closes a file
+ *  INPUTS: file descriptor for file to close
+ *  RETURN VALUE: -1 if invalid close
+ *  SIDE EFFECTS: Allows for fd to be used again
+ */
 int32_t close(int32_t fd) {
     // check if fd less than 2 or greater than 7
     if (fd < 2 || fd > 7) {
