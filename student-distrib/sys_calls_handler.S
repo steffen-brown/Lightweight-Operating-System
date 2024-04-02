@@ -25,6 +25,7 @@ sys_calls_handler:
 
 return_error:
     movl    $-1, %eax  /* return with error value */
+    subl    $20, %esp
     jmp     sys_calls_handler_end
 
 sys_calls_handler_end:
