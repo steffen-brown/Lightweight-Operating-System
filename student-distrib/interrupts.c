@@ -76,7 +76,7 @@ void exc_handler(int vector) {
             printf("Address: %d\n", read_cr2());
         }
 
-        while(1) {}; // Halts the system for a critical exception
+        halt(256); // Halts the system for a critical exception
     }
     // Hardware interrupt handling
     if(vector == 0x28) { // 0x28: RTC interrupt vector number

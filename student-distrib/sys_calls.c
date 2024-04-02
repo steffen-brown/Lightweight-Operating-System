@@ -21,6 +21,10 @@ int32_t halt(uint32_t status) {
         :                            // No input operands
         : "eax"                      // Clobber list, indicating EAX is modified
     );
+    uint32_t return_value = (uint32_t)(status & 0xFF);
+    if (status == 256){
+        return_value = 0x100;
+    }
     
     int i;
     // Close any open files
@@ -56,7 +60,6 @@ int32_t halt(uint32_t status) {
         active_pcb--;
     }
     
-    uint32_t return_value = (uint32_t)(status & 0xFF);
     uint32_t parent_ebp = (uint32_t)current_pcb->oldEBP; // HAVE TO SAVE THIS IN EXECUTE
     halt_return(parent_ebp, parent_ebp, return_value);
 
@@ -234,7 +237,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
         RETURN(-1);
     }
-    if ( fd == 1){
+    if ( fd == 1){ // edge case ( can't read from stdout)
         RETURN(-1);
     }
 
@@ -250,6 +253,9 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
+    if (current_pcb->files[fd].flags == 0) { // Check if file descriptor is in use
+        RETURN(-1);
+    }
     int bytes = current_pcb->files[fd].operationsTable.read(fd, buf, nbytes);
 
     RETURN(bytes);
@@ -268,7 +274,7 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     if (fd < 0 || fd > 7 || !buf || nbytes < 0) {
         RETURN(-1);
     }
-    if ( fd == 0){
+    if ( fd == 0){ // edge case ( can't write to stdin)
         RETURN(-1);
     }
 
@@ -282,6 +288,9 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
+    if (current_pcb->files[fd].flags == 0) { // Check if file descriptor is in use
+        RETURN(-1);
+    }
     int bytes = current_pcb->files[fd].operationsTable.write(fd, buf, nbytes);
 
     RETURN(bytes);
