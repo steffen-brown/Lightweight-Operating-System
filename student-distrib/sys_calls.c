@@ -120,13 +120,16 @@ FileOperationsTable rtc_operations_table = {
  *  RETURN VALUE: -1 if cmd invalid
  *  SIDE EFFECTS: executes a process
  */
-int32_t execute(const uint8_t* command) {
+int32_t execute(const uint8_t* command_user) {
     uint8_t file_name[32];
     dir_entry_t cur_dentry;
-
     int file_length;
     uint8_t file_buffer[40000];
-
+    uint8_t command[128];
+    int cnt;
+    for (cnt = 0; cnt <128; cnt++){
+        command[cnt] = command_user[cnt];
+    }
     int args_idx;
     for (args_idx = 0; command[args_idx] != ' ' && command[args_idx] != '\0'; args_idx++) { // get file name from command argument
         file_name[args_idx] = command[args_idx];
@@ -191,6 +194,24 @@ int32_t execute(const uint8_t* command) {
     new_PCB->files[1] = stdout_fd;
     new_PCB->files[1].flags = 1;
 
+    // clear args buffer
+    int i;
+    for (i = 0; i < argsBufferSize; i++) {
+        new_PCB->args[i] = '\0';
+    }
+    // remove spaces from command
+    while (command[args_idx] == ' ') {
+        args_idx++;
+    }
+    // copy args to PCB
+    for (i = 0; i < argsBufferSize; i++) {
+        if (command[args_idx] == '\0') {
+            new_PCB->args[i] = '\0';
+            break;
+        }
+        new_PCB->args[i] = command[args_idx];
+        args_idx++;
+    }
     // Set up context switch
     uint32_t ss = USER_DS;
     uint32_t esp = 0x8400000 - 4;
@@ -393,6 +414,33 @@ int32_t close(int32_t fd) {
 
 
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
+    if (buf == NULL || nbytes < 0 || nbytes > argsBufferSize) {
+        RETURN(-1);
+        return -1;
+    }
+    ProcessControlBlock* current_pcb;
+    // Assembly code to get the current PCB
+    // Clear the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+    if(current_pcb->args[0] == '\0' || current_pcb->args[0] == NULL) {
+        RETURN(-1);
+        return -1;
+    }
+    int i;
+    for (i = 0; i < nbytes; i++) {
+        if(current_pcb->args[i] == '\0') {
+            break;
+        }
+        ((uint8_t*)buf)[i] = current_pcb->args[i];
+    }
+    RETURN(0);
     return 0;
 }
 

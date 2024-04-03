@@ -8,6 +8,7 @@
 #include "keyboard.h"
 #include "rtc.h"
 #define PROGRAM_START 0x08048000
+#define argsBufferSize 1024
 
 extern int32_t halt(uint32_t status); // Halts the current system call
 extern int32_t execute(const uint8_t* command); // executes the called sys call
@@ -48,7 +49,7 @@ typedef struct ProcessControlBlock {
     int parentProcessID;             // Parent process identifier, 0 if spawned by start up
     FileDescriptor files[8]; // Array of file descriptors
     void* pcbPointerToParent;        // Pointer to the parent process's PCB, NULL if spawned by start up
-    
+    uint8_t args[argsBufferSize];    // Arguments for the process
     void* oldEBP;
     
 } ProcessControlBlock;

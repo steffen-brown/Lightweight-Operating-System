@@ -173,7 +173,7 @@ int32_t dir_read(int32_t fd, void *buf, int32_t nbytes)
     uint32_t i;
     
     // add file name, file type and size to buffer with File Name: File Type: File Size labels
-    for ( i = 0; i < MAX_FILE_NAME; i++)
+    for ( i = 0; i < nbytes; i++)
     {
         if (dentry.name[i] == '\0')
         {
@@ -280,12 +280,20 @@ int32_t file_read(int32_t fd, void *buf, int32_t nbytes)
     uint32_t inode_ptr = current_pcb->files[fd].inode;
     // uint32_t inode_ptr = g_boot_block->dir_entries[fd].inode_num;
     uint32_t file_size = g_inodes[inode_ptr].size; // size in bytes
+    if(current_pcb->files[fd].filePosition >= file_size){ // if file position is at or past the end of the file
+        current_pcb->files[fd].filePosition = 0; // reset file position
+        return 0;
+    }
     uint32_t offset = current_pcb->files[fd].filePosition;
-    int32_t transfer_size = read_data(inode_ptr, offset, buf, file_size);
-    if (transfer_size != -1) {
+    int32_t transfer_size = read_data(inode_ptr, offset, buf, nbytes);
+    if (transfer_size == -1) { // if read_data returns -1, return error
+         return FS_ERROR;
+    }
+    else {
+        current_pcb->files[fd].filePosition += transfer_size; // update file position based on number of bytes read
         return transfer_size;
     }
-    return FS_ERROR;
+   
 }
 
 
