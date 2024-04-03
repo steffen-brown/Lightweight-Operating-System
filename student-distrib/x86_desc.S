@@ -250,7 +250,23 @@ enable_paging_bit:
     popl %ebp           # Restore the base pointer.
     ret                 # Return from the function.
 
-
+/*
+ * Flushes the Translation Lookaside Buffer (TLB).
+ *
+ * Description:
+ *    This function flushes the TLB by reloading the value of the CR3 register.
+ *    Flushing the TLB is necessary after changes to page tables to ensure that
+ *    old mappings are not used by the processor. This operation is critical for
+ *    maintaining the consistency of virtual memory.
+ *
+ * Inputs: None.
+ *
+ * Outputs: None.
+ *
+ * Side Effects:
+ *    Invalidates the entries in the TLB, forcing page table entries to be reloaded
+ *    on subsequent memory accesses.
+ */
 flush_tlb:
     pushl %ebp          # Save the base pointer.
     movl %esp, %ebp     # Set the base pointer to the current stack pointer.

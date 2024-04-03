@@ -167,7 +167,7 @@ void entry(unsigned long magic, unsigned long addr) {
     sti();
 
     clear();
-    execute((uint8_t*)"shell");
+    execute((uint8_t*)"shell"); // Start the shell
 
 #ifdef RUN_TESTS
     /* Run tests */

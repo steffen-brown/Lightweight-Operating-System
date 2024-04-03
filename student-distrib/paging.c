@@ -1,6 +1,25 @@
 #include "paging.h"
 #include "lib.h"
 
+/*
+ * Configures a page directory entry for a 4MB page.
+ *
+ * Description:
+ *    This function sets up a page directory entry to point to a 4MB page frame
+ *    with specified access permissions and physical memory location. It configures
+ *    the entry for either user or supervisor level access, enables read/write permissions,
+ *    and sets the page as present in memory.
+ *
+ * Inputs:
+ *    - page: A pointer to the page directory entry to configure.
+ *    - physical_memory_22_31: The high-order bits (22-31) of the physical address where the 4MB page frame is located.
+ *    - user: A flag indicating if the page is accessible from user mode (1) or only from supervisor mode (0).
+ *
+ * Outputs: None.
+ *
+ * Side Effects:
+ *    Modifies the provided page directory entry to reflect the specified configuration.
+ */
 void pdt_entry_page_setup(pdt_entry_page_t* page, uint32_t physical_memory_22_31, uint32_t user) {
     page->p = 1;          // Present; the page is present in memory
     page->rw = 1;         // Read/Write; the page is writable
