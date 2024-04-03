@@ -124,7 +124,7 @@ int32_t execute(const uint8_t* command_user) {
     uint8_t file_name[32];
     dir_entry_t cur_dentry;
     int file_length;
-    uint8_t file_buffer[40000];
+    uint8_t file_buffer[7500];
     uint8_t command[128];
     int cnt;
     for (cnt = 0; cnt <128; cnt++){
@@ -143,7 +143,7 @@ int32_t execute(const uint8_t* command_user) {
         RETURN(-1);
     }
 
-    if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 40000)) == -1) { // check if inode is valid
+    if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 7500)) == -1) { // check if inode is valid
         RETURN(-1);
     }
 
@@ -178,7 +178,7 @@ int32_t execute(const uint8_t* command_user) {
     // Maybe update tss.ebp
 
     // Load the file into the correct memory location
-    memcpy((void*)PROGRAM_START, (void*)file_buffer, 40000);
+    memcpy((void*)PROGRAM_START, (void*)file_buffer, 7500);
 
     // Create PCB at top of new process kernal stack
     ProcessControlBlock* new_PCB = (void*)(0x800000 - (new_PID + 1) * 0x2000); // Could be wrong
@@ -436,6 +436,7 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
     int i;
     for (i = 0; i < nbytes; i++) {
         if(current_pcb->args[i] == '\0') {
+            ((uint8_t*)buf)[i] = '\0';
             break;
         }
         ((uint8_t*)buf)[i] = current_pcb->args[i];
