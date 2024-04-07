@@ -44,6 +44,7 @@ int32_t halt(uint32_t status) {
     // Special handling for when the shell (process ID 1) is halted.
     if (current_pcb->processID == 1) {
         // If the current process is the shell, restart the shell
+        active_pcb--;
         execute((uint8_t*)"shell");
     } else {
         pdt_entry_page_t new_page;
@@ -130,12 +131,12 @@ int32_t execute(const uint8_t* command_user) {
     uint8_t file_name[32]; // Buffer to store the extracted file name from the command.
     dir_entry_t cur_dentry; // Directory entry structure to hold file metadata.
     int file_length; // Variable to store the length of the file being executed.
-    uint8_t file_buffer[7500]; // Buffer to temporarily hold the file contents. The size 7500 is chosen based on the expected maximum size of an executable.
+    uint8_t file_buffer[6000]; // Buffer to temporarily hold the file contents. The size 6000 is chosen based on the expected maximum size of an executable.
     uint8_t command[128]; // Buffer to copy the user command (max size 128) to avoid modifying the original.
     int cnt;
 
     // Copies the command from user space to a local buffer to ensure safe manipulation.
-    for (cnt = 0; cnt <128; cnt++){
+    for (cnt = 0; cnt < 128; cnt++){
         command[cnt] = command_user[cnt];
     }
 
@@ -152,8 +153,8 @@ int32_t execute(const uint8_t* command_user) {
         RETURN(-1); // Return command not found
     }
 
-    // 7500: Max length of file buffer
-    if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 7500)) == -1) { // check if inode is valid
+    // 6000: Max length of file buffer
+    if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 6000)) == -1) { // check if inode is valid
         RETURN(-1); // Return command not found
     }
 
@@ -186,7 +187,7 @@ int32_t execute(const uint8_t* command_user) {
     // Maybe update tss.ebp
 
     // Load the file into the correct memory location
-    memcpy((void*)PROGRAM_START, (void*)file_buffer, 7500); // 7500: The max file length
+    memcpy((void*)PROGRAM_START, (void*)file_buffer, 6000); // 6000: The max file length
 
     // Create PCB at top of new process kernal stack
     ProcessControlBlock* new_PCB = (void*)(0x800000 - (new_PID + 1) * 0x2000); // Update the new PCB pointer - new_PCB = 8MB - (PID + 1) * 8KB (0x2000)
