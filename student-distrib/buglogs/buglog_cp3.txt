@@ -38,3 +38,23 @@ Correction: It was necessary to pop an extra 32-bit value off the top of the sta
 from the specific sys call handler sub-routine.
 Explanation: Since C functions automatically push the previous epb onto the stack upon entering
 it is important to manually pop this value off when not returning using typical C return convention.
+
+Component: read/write
+File: sys_calls.C
+Bug: Attempting read operations on standard output (stdout) or write operations on standard input (stdin)
+causes page faults.
+Correction: Implemented a check for invalid file descriptor operations to prevent page faults. Specifically,
+if a write operation is requested on file descriptor 0 (stdin), or a read operation is requested on file
+descriptor 1 (stdout), the system now returns an error. This ensures that operations incompatible with the
+file descriptors' intended use are appropriately handled, maintaining system stability.
+
+
+Component: System Call Stack Error Handling Bug Fix
+File: sys_calls_handler.S
+Bug: Incorrect stack management when handling invalid system call numbers. The system attempted to adjust the
+stack for arguments that were not pushed in the case of an invalid system call number, leading to stack misalignment
+and potential faults.
+Correction: Adjusted the error handling logic to ensure stack integrity. Now, the system correctly identifies when it has not pushed
+arguments onto the stack due to an invalid system call number and skips the stack adjustment in such cases. This fix
+prevents the stack from becoming misaligned, thereby avoiding related faults and ensuring the system's robust error 
+handling.
