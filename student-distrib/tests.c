@@ -2,7 +2,7 @@
 #include "x86_desc.h"
 #include "lib.h"
 #include "i8259.h"
-#include "rtc.h"
+#include "RTC.h"
 #include "keyboard.h"
 #include "file_sys.h"
 #define PASS 1

@@ -2,7 +2,7 @@
 #include "interrupts.h"
 #include "lib.h"
 #include "i8259.h"
-#include "rtc.h"
+#include "RTC.h"
 #include "keyboard.h"
 #include "sys_calls.h"
 

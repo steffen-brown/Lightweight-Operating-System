@@ -6,7 +6,7 @@
 #include "paging.h"
 #include "x86_desc.h"
 #include "keyboard.h"
-#include "rtc.h"
+#include "RTC.h"
 #define PROGRAM_START 0x08048000
 #define argsBufferSize 1024
 
