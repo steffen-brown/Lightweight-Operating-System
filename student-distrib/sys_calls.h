@@ -51,6 +51,7 @@ typedef struct ProcessControlBlock {
     void* pcbPointerToParent;        // Pointer to the parent process's PCB, NULL if spawned by start up
     uint8_t args[argsBufferSize];    // Arguments for the process
     void* oldEBP;
+    uint8_t name[32];
     
 } ProcessControlBlock;
 

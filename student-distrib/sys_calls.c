@@ -2,6 +2,7 @@
 
 // The currently active process control block index, initially 0
 static int active_pcb = 0;
+static int active_shell = 0;
 
 /*
  * Halts a process and handles the termination or switching to another process.
@@ -45,22 +46,27 @@ int32_t halt(uint32_t status) {
     if (current_pcb->processID == 1) {
         // If the current process is the shell, restart the shell
         active_pcb--;
+        active_shell--;
         execute((uint8_t*)"shell");
     } else {
         pdt_entry_page_t new_page;
-        // If the current process is not the shell, return to the parent process
+        // If the current process ics not the shell, return to the parent process
         // Restore parent paging
-        pdt_entry_page_setup(&new_page, 0x2, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
+        pdt_entry_page_setup(&new_page, current_pcb->parentProcessID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
         pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
         flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
 
         // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
         // The calculation for esp0 adjusts the stack pointer based on the process ID, ensuring each process has a unique kernel stack in memory.
         // The magic number 0x800000 represents the start of kernel memory, and 0x2000 (8KB) is the size allocated for each process's kernel stack.
-        tss.esp0 = (uint32_t)(0x800000 - (current_pcb->parentProcessID ) * 0x2000); // Adjusts ESP0 for the parent process.
+        tss.esp0 = (uint32_t)(0x800000 - (current_pcb->parentProcessID) * 0x2000); // Adjusts ESP0 for the parent process.
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
         // Restore parent process control block
         active_pcb--; // Decrement the active process count to reflect the process termination.
+
+        if(strncmp((int8_t*)current_pcb->name, "shell", 5) == 0) {
+            active_shell--;
+        }
     }
     
     uint32_t parent_ebp = (uint32_t)current_pcb->oldEBP;// Retrieves the saved Base Pointer (EBP) of the parent process.
@@ -130,8 +136,7 @@ FileOperationsTable rtc_operations_table = {
 int32_t execute(const uint8_t* command_user) {
     uint8_t file_name[32]; // Buffer to store the extracted file name from the command.
     dir_entry_t cur_dentry; // Directory entry structure to hold file metadata.
-    int file_length; // Variable to store the length of the file being executed.
-    uint8_t file_buffer[6000]; // Buffer to temporarily hold the file contents. The size 6000 is chosen based on the expected maximum size of an executable.
+    uint8_t file_metadata[28]; // Buffer to temporarily hold the file contents. The size 6000 is chosen based on the expected maximum size of an executable.
     uint8_t command[128]; // Buffer to copy the user command (max size 128) to avoid modifying the original.
     int cnt;
 
@@ -154,31 +159,33 @@ int32_t execute(const uint8_t* command_user) {
     }
 
     // 6000: Max length of file buffer
-    if ((file_length = read_data(cur_dentry.inode_num, 0, file_buffer, 6000)) == -1) { // check if inode is valid
+    if (read_data(cur_dentry.inode_num, 0, file_metadata, 28) == -1) { // check if inode is valid
         RETURN(-1); // Return command not found
     }
 
     // 0x7F: DEL, 0x45: E, 0x4C: L, 0x46: F
-    if (file_buffer[0] != 0x7f || file_buffer[1] != 0x45 || file_buffer[2] != 0x4c || file_buffer[3] != 0x46) { // check ELF for exe
+    if (file_metadata[0] != 0x7f || file_metadata[1] != 0x45 || file_metadata[2] != 0x4c || file_metadata[3] != 0x46) { // check ELF for exe
         RETURN(-1); // Return command not found
     }
 
-    if(active_pcb + 1 > 2) { // Limit the number of processes running to 2
+    if(active_pcb + 1 > 6) { // Limit the number of processes running to 3
+        terminal_write(1, "Max number of processes reached!\n", 33);
         RETURN(1);
     }
+
+    if(strncmp((int8_t*)command_user, "shell", 6) == 0) {
+        if(active_shell + 1 > 3) {
+            terminal_write(1, "Max number of shells reached!\n", 30);
+            RETURN(1);
+        }
+        active_shell++;
+    }
+
     int new_PID = ++active_pcb; // The PID of the process that is being execuated
 
     pdt_entry_page_t new_page;
 
-    if(new_PID == 1) { // If the new page has PID #1
-        // Set up page table entry pointing mapping 128mb (virtual) to 8mb (phyiscal)
-        // populate table entry
-        pdt_entry_page_setup(&new_page, 0x2, 1); // Get page directory entry for 0x2 4mb page (zero-idxed) with user permissions (1)
-    } else if(new_PID == 2) { // If the new page has PID #2
-        // Set up page table entry pointing mapping 128mb (virtual) to 12mb (phyiscal)
-        // populate table entry
-        pdt_entry_page_setup(&new_page, 0x3, 1); // Get page directory entry for 0x3 4mb page (zero-idxed) with user permissions (1)
-    }
+    pdt_entry_page_setup(&new_page, new_PID + 1, 1); // Get page directory entry for 0x2 4mb page (zero-idxed) with user permissions (1)
     // Update virtual memory address 128mb (32nd 4mb page - zero indexed)
     pdt[32] = new_page.val;
     flush_tlb(); // Flush the TLB
@@ -187,7 +194,7 @@ int32_t execute(const uint8_t* command_user) {
     // Maybe update tss.ebp
 
     // Load the file into the correct memory location
-    memcpy((void*)PROGRAM_START, (void*)file_buffer, 6000); // 6000: The max file length
+    read_data(cur_dentry.inode_num, 0, (uint8_t*)PROGRAM_START, 1048576 - 1024);
 
     // Create PCB at top of new process kernal stack
     ProcessControlBlock* new_PCB = (void*)(0x800000 - (new_PID + 1) * 0x2000); // Update the new PCB pointer - new_PCB = 8MB - (PID + 1) * 8KB (0x2000)
@@ -195,6 +202,7 @@ int32_t execute(const uint8_t* command_user) {
     new_PCB->processID = new_PID;
     new_PCB->parentProcessID = new_PID - 1; // Revise to be less hard coded?
     new_PCB->pcbPointerToParent = (void*)(0x800000 - (new_PCB->parentProcessID + 1) * 0x2000); // Update the new PCB parent pointer - new_PCB = 8MB - (parent PID + 1) * 8KB (0x2000)
+    strcpy((int8_t*)new_PCB->name, (int8_t*)file_name);
 
     // Add stdin and stdout to the file descriptor array
     new_PCB->files[0] = stdin_fd;
@@ -226,7 +234,7 @@ int32_t execute(const uint8_t* command_user) {
     uint32_t esp = 0x8400000 - 4; // one int32 above the bottom of the user space
     uint32_t eflags = 0x00000202; // Allow interrupts
     uint32_t cs = USER_CS;
-    uint32_t eip = 0 | (uint32_t)file_buffer[27] << 24 | (uint32_t)file_buffer[26] << 16 | (uint32_t)file_buffer[25] << 8 | (uint32_t)file_buffer[24];
+    uint32_t eip = 0 | (uint32_t)file_metadata[27] << 24 | (uint32_t)file_metadata[26] << 16 | (uint32_t)file_metadata[25] << 8 | (uint32_t)file_metadata[24];
     // Shifts bytes of the ESP from file approriate amount to form file EIP.
 
     // Context switch
