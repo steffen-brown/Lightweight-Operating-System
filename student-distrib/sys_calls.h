@@ -9,8 +9,8 @@
 #include "RTC.h"
 #define PROGRAM_START 0x08048000
 #define argsBufferSize 1024
-#define VID_MEM          0x88000000 // 136MB: 136*1024*1024
-#define USER_STACK       0x80000000 // 128MB
+#define VID_MEM          0x8800000 // 136MB: 136*1024*1024
+#define USER_STACK       0x8400000 // 128MB
 #define VID_PDT_IDX      34
 #define VID_MEM_PHYSICAL 0xB8000    // Video memory start physical address
 
