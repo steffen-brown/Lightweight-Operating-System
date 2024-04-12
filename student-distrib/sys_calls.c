@@ -39,6 +39,15 @@ int32_t halt(uint32_t status) {
         }
     }
 
+    // Disable the virtual memory address for user video memory
+    pt_entry_t disabled_entry;
+    disabled_entry.p = 0;
+    pt_vidmap[0] = disabled_entry.val;
+
+    pdt_entry_table_t disabled_table_entry;
+    disabled_table_entry.p = 0; // present
+    pdt[VID_PDT_IDX] = disabled_table_entry.val;
+
     // Set the exit status in the PCB
     current_pcb->exitStatus = status;
 
@@ -470,6 +479,36 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
 
 
 int32_t vidmap(uint8_t** screen_start) {
+    // Bound checks
+    uint32_t vid_addr = (uint32_t)screen_start;
+    if (screen_start == NULL) { // invalid screen start
+        RETURN(-1);
+        return -1;
+    }
+    if (vid_addr > USER_STACK || vid_addr < USER_STACK - 0x400000) {
+        RETURN(-1);
+        return -1;
+    }
+
+    // Paging
+    pdt_entry_table_t vidmem;
+    vidmem.p = 1; // present
+    vidmem.us = 1; // user
+    vidmem.rw = 1;
+    vidmem.address = ((int)pt_vidmap)/4096; // 4096 = 4kB
+    pdt[VID_PDT_IDX] = vidmem.val;
+
+    pt_entry_t vidmem_pt;
+    vidmem_pt.p = 1; // present
+    vidmem_pt.us = 1; // user
+    vidmem_pt.rw = 1;
+    vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
+    pt_vidmap[0] = vidmem_pt.val;
+
+    flush_tlb();
+    *screen_start = (uint8_t*)VID_MEM;
+
+    RETURN(0);
     return 0;
 }
 
