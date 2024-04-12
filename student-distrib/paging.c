@@ -102,3 +102,15 @@ void enable_paging() {
     load_page_directory(pdt); // Load the address of the global page directory table into CR3.
     enable_paging_bit(); // Set the paging enable bit in CR0 to activate paging.
 }
+
+
+// /*
+//  * video_page_mapping
+//  *   DESCRIPTION: TODO
+//  *   INPUTS: va: virtual address
+//  *           pa: physical address
+//  *   OUTPUTS: none
+//  *   RETURN VALUE: none
+//  *   SIDE EFFECTS: TODO
+//  */
+// void video_page_mapping(uint32_t va, uint32_t pa) {}

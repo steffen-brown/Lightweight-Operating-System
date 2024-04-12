@@ -462,6 +462,30 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
 
 
 int32_t vidmap(uint8_t** screen_start) {
+    // Bound checks
+    uint32_t vid_addr = (uint32_t)screen_start;
+    if (screen_start == NULL) { // invalid screen start
+        return -1;
+    }
+    if (vid_addr < USER_STACK) {
+        return -1;
+    }
+
+    // Paging
+    pdt_entry_table_t vidmem;
+    vidmem.p = 1; // present
+    vidmem.us = 1; // user
+    vidmem.address = ((int)pt_vidmap)/4096; // 4096 = 4kB
+    pdt[VID_PDT_IDX] = vidmem.val;
+
+    pt_entry_t vidmem_pt;
+    vidmem_pt.p = 1; // present
+    vidmem_pt.us = 1; // user
+    vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
+    pt_vidmap[0] = vidmem_pt.val;
+
+    flush_tlb();
+    *screen_start = (uint32_t)VID_MEM;
     return 0;
 }
 

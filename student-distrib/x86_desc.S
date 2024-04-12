@@ -13,7 +13,7 @@
 .globl tss, tss_desc_ptr, ldt, ldt_desc_ptr
 .globl gdt_ptr
 .globl idt_desc_ptr, idt
-.global pdt, pt0
+.global pdt, pt0, pt_vidmap
 .globl load_page_directory, enable_paging_bit, flush_tlb
 
 .align 4
@@ -206,6 +206,15 @@ _pt0:
     .long 0
     .endr
 pt0_bottom:
+
+# Allocate space for a paging table for video memory (init w/ 0s)
+.align 4096
+pt_vidmap:
+_pt_vidmap:
+    .rept NUM_DIR_ETRY
+    .long 0
+    .endr
+pt_vidmap_bottom:
 
 /*
  * load_page_directory
