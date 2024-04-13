@@ -1,0 +1,33 @@
+Component: vidmap
+File: sys_calls.h
+Bug: Page Fault. Incorrect constants for VID_MEM (0x88000000) and USER_STACK(0x84000000)
+Correction: Corrected constants to 0x8800000 (136MB) and 0x8400000 (128MB) respectively
+Explanation: Made a calculation/typing error while calculating 136MB and 128MB in hex
+
+
+Component: vidmap
+File: sys_calls.h
+Bug: Page Fault. We did
+        if (vid_addr < USER_STACK || vid_addr > USER_STACK - 0x400000) return -1 (0x400000 is 4MB)
+     instead of
+        if (vid_addr > USER_STACK || vid_addr < USER_STACK - 0x400000) return -1
+Correction: Mentioned above
+Explanation: Simple reversed condition, which resulted in all good values being declined and all bad values
+being accepted by the function.
+
+
+Component: vidmap
+File: x86_desc.S
+Bug: Undefined reference to pt_vidmap
+Correction: Allocated space for user space video memory paging table in x86_desc.S
+Explanation: Space for paging table needs to be allocated as can be seen by the implementation of other
+paging tables (pt0) in our MP implementation
+
+Component: vidmap
+File: sys_calls.c
+Bug: Page fault (also had other errors so might have been also linked to another issue). Read-write bit
+was not set to 1 while setting up PDT and PTE for user space video memory.
+Correction: Set read write bit to 1
+        vidmem.rw = 1;
+        vidmem_pt.rw = 1;
+Explanation: We need to make the page read-only.

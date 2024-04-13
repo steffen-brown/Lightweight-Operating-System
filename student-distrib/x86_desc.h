@@ -229,6 +229,7 @@ typedef union pt_entry_t {
 extern uint32_t pdt[NUM_DIR_ETRY] __attribute__((aligned(4096)));
 // The page table for the first 4mb of physical memory
 extern uint32_t pt0[NUM_DIR_ETRY] __attribute__((aligned(4096)));
+// The page table for user-space video memory (starting at 136MB point)
 extern uint32_t pt_vidmap[NUM_DIR_ETRY] __attribute__((aligned(4096)));
 
 

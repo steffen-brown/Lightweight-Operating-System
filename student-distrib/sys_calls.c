@@ -478,26 +478,36 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
 }
 
 
+/*
+ * int32_t vidmap(uint8_t** screen_start)
+ *  DESCRIPTION: maps the text-mode video memory into user space at a pre-set virtual address
+ *  INPUTS: screen_start - double pointer to user video memory (start)
+ *  RETURN VALUE: -1 if invalid screen_start, 0 if successfully mapped
+ *  SIDE EFFECTS: changes PDT and Page table for vid map (more of an effect than a side effect)
+ */
 int32_t vidmap(uint8_t** screen_start) {
-    // Bound checks
+    // Step 1: Bound checks
     uint32_t vid_addr = (uint32_t)screen_start;
     if (screen_start == NULL) { // invalid screen start
         RETURN(-1);
         return -1;
     }
-    if (vid_addr > USER_STACK || vid_addr < USER_STACK - 0x400000) {
+    if (vid_addr > USER_STACK || vid_addr < USER_STACK - 0x400000) { // 0x400000 = 4MB
         RETURN(-1);
         return -1;
     }
 
-    // Paging
+    // Step 2: Paging setup
+
+    // Update PDT
     pdt_entry_table_t vidmem;
     vidmem.p = 1; // present
     vidmem.us = 1; // user
     vidmem.rw = 1;
-    vidmem.address = ((int)pt_vidmap)/4096; // 4096 = 4kB
+    vidmem.address = ((int)pt_vidmap)/4096; // 4096 = 4kB; pt_vidmap is paging table for user space video memory
     pdt[VID_PDT_IDX] = vidmem.val;
 
+    // Update Paging table for user space video memory
     pt_entry_t vidmem_pt;
     vidmem_pt.p = 1; // present
     vidmem_pt.us = 1; // user
@@ -505,8 +515,9 @@ int32_t vidmap(uint8_t** screen_start) {
     vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
     pt_vidmap[0] = vidmem_pt.val;
 
-    flush_tlb();
-    *screen_start = (uint8_t*)VID_MEM;
+    // Step 3: Flush TLB, update screen start and return
+    flush_tlb(); // Updated tables so flush Translation Lookaside Buffer
+    *screen_start = (uint8_t*)VID_MEM; // Update screen start to start of (user-space) video memory
 
     RETURN(0);
     return 0;
