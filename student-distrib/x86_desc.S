@@ -216,6 +216,8 @@ _pt_vidmap:
     .endr
 pt_vidmap_bottom:
 
+
+
 /*
  * load_page_directory
  *   DESCRIPTION: Sets the page directory base register (CR3) to the specified page directory address

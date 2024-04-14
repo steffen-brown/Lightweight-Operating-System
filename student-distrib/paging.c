@@ -35,6 +35,30 @@ void pdt_entry_page_setup(pdt_entry_page_t* page, uint32_t physical_memory_22_31
     page->address_22_31 = physical_memory_22_31; // The physical address bits 22-31 of the 4MB page frame
 }
 
+
+/*
+ * set_pt_entry
+ *   DESCRIPTION: Sets parameters/struct variables for page table entry passed in
+ *   INPUTS: ptentry - pointer to page table entry to set parameters for
+ *           user - user/supervisor mode
+ *           offset - offset from first pt_entry we set at 0xB8
+ *   OUTPUTS: none
+ *   RETURN VALUE: none. Input ptentry modified
+ *   SIDE EFFECTS: none
+ */
+void set_pt_entry(pt_entry_t* ptentry, uint32_t user, uint32_t offset) {
+    ptentry.p = 1;    // Present; the page is present in memory
+    ptentry.rw = 1;   // Read/Write; the page is writable
+    ptentry.us = user;   // User (1) / Supervisor (0)
+    ptentry.pwt = 0;  // Page Write-Through; disabled for performance
+    ptentry.pcd = 0;  // Page Cache Disable; caching enabled
+    ptentry.a = 0;    // Accessed; not accessed yet
+    ptentry.d = 0;    // Dirty; not written to yet
+    ptentry.pat = 0;  // Page Attribute Table; not used here
+    ptentry.g = 0;    // Global; not global
+    ptentry.address_31_12 = 0xB8 + offset; // Physical address of video memory (0xB8000 >> 12)
+}
+
 /*
  * setup_kernel_paging
  *   DESCRIPTION: Configures the initial paging setup for the kernel. This involves setting up
@@ -72,18 +96,30 @@ void setup_kernel_paging() {
     pt_entry_t video_memory_page;
 
     // Setup a Page Table entry for video memory
-    video_memory_page.p = 1;    // Present; the page is present in memory
-    video_memory_page.rw = 1;   // Read/Write; the page is writable
-    video_memory_page.us = 0;   // User/Supervisor; the page is only accessible from supervisor mode
-    video_memory_page.pwt = 0;  // Page Write-Through; disabled for performance
-    video_memory_page.pcd = 0;  // Page Cache Disable; caching enabled
-    video_memory_page.a = 0;    // Accessed; not accessed yet
-    video_memory_page.d = 0;    // Dirty; not written to yet
-    video_memory_page.pat = 0;  // Page Attribute Table; not used here
-    video_memory_page.g = 0;    // Global; not global
-    video_memory_page.address_31_12 = 0xB8; // Physical address of video memory (0xB8000 >> 12)
-
+    // video_memory_page.p = 1;    // Present; the page is present in memory
+    // video_memory_page.rw = 1;   // Read/Write; the page is writable
+    // video_memory_page.us = 0;   // User/Supervisor; the page is only accessible from supervisor mode
+    // video_memory_page.pwt = 0;  // Page Write-Through; disabled for performance
+    // video_memory_page.pcd = 0;  // Page Cache Disable; caching enabled
+    // video_memory_page.a = 0;    // Accessed; not accessed yet
+    // video_memory_page.d = 0;    // Dirty; not written to yet
+    // video_memory_page.pat = 0;  // Page Attribute Table; not used here
+    // video_memory_page.g = 0;    // Global; not global
+    // video_memory_page.address_31_12 = 0xB8; // Physical address of video memory (0xB8000 >> 12)
+    set_pt_entry(&video_memory_page, 0, 0);
     pt0[0xB8] = video_memory_page.val; // Maps virtual address corresponding to 0xB8000 to video memory
+
+    pt_entry_t video_memory_page1;
+    set_pt_entry(&video_memory_page1, 0, 1);
+    pt0[0xB8 + 1] = video_memory_page1.val;
+
+    pt_entry_t video_memory_page2;
+    set_pt_entry(&video_memory_page2, 0, 2);
+    pt0[0xB8 + 2] = video_memory_page2.val;
+
+    pt_entry_t video_memory_page3;
+    set_pt_entry(&video_memory_page3, 0, 3);
+    pt0[0xB8 + 3] = video_memory_page3.val;
 }
 
 /*

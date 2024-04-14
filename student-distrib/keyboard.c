@@ -35,6 +35,7 @@ static int caps_lock_flag;
 static int ctrl_flag;
 static volatile int enter_flag;
 static int newline_flag;
+static int alt_flag;
 
 /*
  * keyboard_init
@@ -52,6 +53,7 @@ void keyboard_init(void) {
     ctrl_flag = 0;
     enter_flag = 0;
     newline_flag = 0;
+    alt_flag = 0;
 }
 
 /*
@@ -81,6 +83,12 @@ void keyboard_handler(void) {
         ctrl_flag = 1;
     } else if (scan_code == CTRL_REL) {
         ctrl_flag = 0;
+    }
+    
+    if (scan_code == ALT) { // handles flags when alt is pressed and released
+        alt_flag = 1;
+    } else if (scan_code == ALT_REL) {
+        alt_flag = 0;
     }
 
     if (scan_code == ENTER) { // handles flags when enter is pressed and released
@@ -112,6 +120,16 @@ void keyboard_handler(void) {
         keyboard_index = 0;
         
         clear();
+    }
+
+    if (alt_flag) {
+        if (scan_code == F1) { // switches to terminal 1
+            // switch
+        } else if (scan_code == F2) { // switches to terminal 2
+            // switch
+        } else if (scan_code == F3) { // switches to terminal 3
+            // switch
+        }
     }
 
     if (scan_code == TAB && keyboard_index + TAB_SPACE < BUFFER_SIZE && screen_x + TAB_SPACE < MAX_LINE) { // handles extra space when tab is pressed
@@ -193,7 +211,7 @@ void keyboard_handler(void) {
     }
 
     // Filter out invalid or otherwise unhandled scancodes
-    if (scan_code < SCAN_CODES && scan_codes_table[scan_code] && !ctrl_flag && keyboard_index < BUFFER_SIZE - 1) {
+    if (scan_code < SCAN_CODES && scan_codes_table[scan_code] && !ctrl_flag && !alt_flag && keyboard_index < BUFFER_SIZE - 1) {
         if (shift_flag && !caps_lock_flag) {
             keyboard_buffer[keyboard_index] = scan_codes_table_shift[scan_code]; // get matching character shifted for scan_code
         } else if (caps_lock_flag && !shift_flag) {
