@@ -78,6 +78,7 @@ int32_t halt(uint32_t status) {
         }
     }
     
+    // TODO NOTE: will need to be changed since oldEBP removed
     uint32_t parent_ebp = (uint32_t)current_pcb->oldEBP;// Retrieves the saved Base Pointer (EBP) of the parent process.
     halt_return(parent_ebp, parent_ebp, return_value); // Return to parent process
 

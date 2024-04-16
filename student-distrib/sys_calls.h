@@ -53,7 +53,8 @@ typedef struct ProcessControlBlock {
     FileDescriptor files[8]; // Array of file descriptors
     void* pcbPointerToParent;        // Pointer to the parent process's PCB, NULL if spawned by start up
     uint8_t args[argsBufferSize];    // Arguments for the process
-    void* oldESP;
+    // void* oldESP;
+    void* esp;
     uint8_t name[32];
     ProcessControlBlock* childPCB;
     ProcessControlBlock* parentPCB;

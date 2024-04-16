@@ -47,16 +47,16 @@ void pdt_entry_page_setup(pdt_entry_page_t* page, uint32_t physical_memory_22_31
  *   SIDE EFFECTS: none
  */
 void set_pt_entry(pt_entry_t* ptentry, uint32_t user, uint32_t offset) {
-    ptentry.p = 1;    // Present; the page is present in memory
-    ptentry.rw = 1;   // Read/Write; the page is writable
-    ptentry.us = user;   // User (1) / Supervisor (0)
-    ptentry.pwt = 0;  // Page Write-Through; disabled for performance
-    ptentry.pcd = 0;  // Page Cache Disable; caching enabled
-    ptentry.a = 0;    // Accessed; not accessed yet
-    ptentry.d = 0;    // Dirty; not written to yet
-    ptentry.pat = 0;  // Page Attribute Table; not used here
-    ptentry.g = 0;    // Global; not global
-    ptentry.address_31_12 = 0xB8 + offset; // Physical address of video memory (0xB8000 >> 12)
+    ptentry->p = 1;    // Present; the page is present in memory
+    ptentry->rw = 1;   // Read/Write; the page is writable
+    ptentry->us = user;   // User (1) / Supervisor (0)
+    ptentry->pwt = 0;  // Page Write-Through; disabled for performance
+    ptentry->pcd = 0;  // Page Cache Disable; caching enabled
+    ptentry->a = 0;    // Accessed; not accessed yet
+    ptentry->d = 0;    // Dirty; not written to yet
+    ptentry->pat = 0;  // Page Attribute Table; not used here
+    ptentry->g = 0;    // Global; not global
+    ptentry->address_31_12 = 0xB8 + offset; // Physical address of video memory (0xB8000 >> 12)
 }
 
 /*
