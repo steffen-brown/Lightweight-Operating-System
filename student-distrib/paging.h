@@ -4,6 +4,7 @@
 #include "x86_desc.h"
 
 // See c file for descriptions
+void set_pt_entry(pt_entry_t* ptentry, uint32_t user, uint32_t offset);
 void setup_kernel_paging();
 void enable_paging();
 

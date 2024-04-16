@@ -50,13 +50,13 @@ typedef struct FileDescriptor {
 typedef struct ProcessControlBlock {
     int processID;                   // Unique process identifier
     int exitStatus;                  // Exit status of the process
-    int parentProcessID;             // Parent process identifier, 0 if spawned by start up
     FileDescriptor files[8]; // Array of file descriptors
     void* pcbPointerToParent;        // Pointer to the parent process's PCB, NULL if spawned by start up
     uint8_t args[argsBufferSize];    // Arguments for the process
-    void* oldEBP;
+    void* oldESP;
     uint8_t name[32];
-    
+    ProcessControlBlock* childPCB;
+    ProcessControlBlock* parentPCB;
 } ProcessControlBlock;
 
 extern void halt_return(uint32_t parent_esp, uint32_t parent_ebp, uint32_t ret_val);
