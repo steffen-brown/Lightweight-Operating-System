@@ -143,8 +143,6 @@ void keyboard_handler(void) {
             return;
         }
 
-        cur_terminal = selected_terminal;
-
         // Save current EBP
         register uint32_t saved_ebp asm("ebp");
         current_PCB->EBP = (void*)saved_ebp;
@@ -156,9 +154,13 @@ void keyboard_handler(void) {
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
             execute((uint8_t*)"shell");
+            cur_terminal = selected_terminal;
         } else {
             // Switch vidmem
+            memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
+            memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
 
+            cur_terminal = selected_terminal;
             // Context switch to prexisiting thread
             return_to_parent(top_PCB->EBP);
 

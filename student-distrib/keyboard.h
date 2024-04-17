@@ -11,6 +11,8 @@
 #define TAB_SPACE       4       // space for tabs
 #define KEYBOARD_PORT   0x60    // keyboard data port
 #define NUM_TERMINALS   3       // number of terminals
+#define FOUR_KB         4096    // 4 KB in bytes
+#define VIDEO_MEM       ((uint8_t *)0xB8000) // Base address of video memory
 
 #define LEFT_SHIFT      0x2A    // left shift scan code
 #define RIGHT_SHIFT     0x36    // right shift scan code
@@ -32,6 +34,12 @@
 
 char keyboard_buffer[NUM_TERMINALS][BUFFER_SIZE];
 volatile int32_t cur_terminal;
+
+uint8_t* videomem_buffer[NUM_TERMINALS] = {
+    VIDEO_MEM + 1 * FOUR_KB, // Terminal 1 video memory buffer
+    VIDEO_MEM + 2 * FOUR_KB, // Terminal 2 video memory buffer
+    VIDEO_MEM + 3 * FOUR_KB  // Terminal 3 video memory buffer
+};
 
 /* initializes keyboard interrupt on the PIC */
 void keyboard_init(void);
