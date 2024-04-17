@@ -10,6 +10,7 @@
 #define MAX_LINE        80      // maximum number of characters per line
 #define TAB_SPACE       4       // space for tabs
 #define KEYBOARD_PORT   0x60    // keyboard data port
+#define NUM_TERMINALS   3       // number of terminals
 
 #define LEFT_SHIFT      0x2A    // left shift scan code
 #define RIGHT_SHIFT     0x36    // right shift scan code
@@ -29,7 +30,8 @@
 #define F2              0x3C    // F2 scan code
 #define F3              0x3D    // F3 scan code
 
-char keyboard_buffer[BUFFER_SIZE];
+char keyboard_buffer[NUM_TERMINALS][BUFFER_SIZE];
+volatile int32_t cur_terminal;
 
 /* initializes keyboard interrupt on the PIC */
 void keyboard_init(void);

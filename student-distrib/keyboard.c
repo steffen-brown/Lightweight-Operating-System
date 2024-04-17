@@ -55,6 +55,7 @@ void keyboard_init(void) {
     enter_flag = 0;
     newline_flag = 0;
     alt_flag = 0;
+    cur_terminal = 1;
 }
 
 /*
@@ -111,15 +112,15 @@ void keyboard_handler(void) {
     }
 
     if (keyboard_index == MAX_LINE && keyboard_index + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
-        keyboard_buffer[keyboard_index] = '\n';
+        keyboard_buffer[cur_terminal - 1][keyboard_index] = '\n';
         putc('\n');
         keyboard_index++;
         newline_flag = 1;
     }
 
     if (enter_flag) { // adds newline when enter is hit
-        keyboard_buffer[keyboard_index++] = '\n';
-        keyboard_buffer[keyboard_index] = '\0';
+        keyboard_buffer[cur_terminal - 1][keyboard_index++] = '\n';
+        keyboard_buffer[cur_terminal - 1][keyboard_index] = '\0';
         putc('\n');
         keyboard_index = 0;
         
@@ -128,7 +129,7 @@ void keyboard_handler(void) {
     if (ctrl_flag && scan_code == L) { // clears screen (ctrl L) 
         int i;
         for (i = 0; i < BUFFER_SIZE; i++) { // resets keyboard buffer
-            keyboard_buffer[i] = '\0';
+            keyboard_buffer[cur_terminal - 1][i] = '\0';
         }
         keyboard_index = 0;
         
@@ -141,6 +142,8 @@ void keyboard_handler(void) {
         if(get_base_thread_pcb(current_PCB)->processID == selected_terminal) {
             return;
         }
+
+        cur_terminal = selected_terminal;
 
         // Save current EBP
         register uint32_t saved_ebp asm("ebp");
@@ -165,75 +168,75 @@ void keyboard_handler(void) {
 
     if (scan_code == TAB && keyboard_index + TAB_SPACE < BUFFER_SIZE && screen_x + TAB_SPACE < MAX_LINE) { // handles extra space when tab is pressed
         if (keyboard_index + 2 < BUFFER_SIZE) {
-            keyboard_buffer[keyboard_index] = '\t';
+            keyboard_buffer[cur_terminal - 1][keyboard_index] = '\t';
             putc(' '); // tab space
             keyboard_index++;
         }
         if (keyboard_index + 2 < BUFFER_SIZE) {
-            keyboard_buffer[keyboard_index] = '\t';
+            keyboard_buffer[cur_terminal - 1][keyboard_index] = '\t';
             putc(' '); // tab space
             keyboard_index++;
         }
         if (keyboard_index + 2 < BUFFER_SIZE) {
-            keyboard_buffer[keyboard_index] = '\t';
+            keyboard_buffer[cur_terminal - 1][keyboard_index] = '\t';
             putc(' '); // tab space
             keyboard_index++;
         }
         if (keyboard_index + 2 < BUFFER_SIZE) {
-            keyboard_buffer[keyboard_index] = '\t';
+            keyboard_buffer[cur_terminal - 1][keyboard_index] = '\t';
             putc(' '); // tab space
             keyboard_index++;
         }
     }
 
     if (keyboard_index > 0 && keyboard_index <= BUFFER_SIZE - 1 && scan_code == BACKSPACE) { // handle backspacing
-        if (newline_flag && keyboard_buffer[keyboard_index - 1] == '\n') { // when backspacing to previous line
-            keyboard_buffer[keyboard_index - 1] = '\0';
-            keyboard_buffer[keyboard_index - 2] = '\0';
+        if (newline_flag && keyboard_buffer[cur_terminal - 1][keyboard_index - 1] == '\n') { // when backspacing to previous line
+            keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
+            keyboard_buffer[cur_terminal - 1][keyboard_index - 2] = '\0';
             screen_y--;
             int cur_y = screen_y; // deal with cursor
             screen_x = MAX_LINE - 1;
-            putc(keyboard_buffer[keyboard_index - 2]); // remove character
+            putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 2]); // remove character
             screen_y = cur_y;
             screen_x = MAX_LINE - 1;
             keyboard_index = keyboard_index - 2; // move before \n and prev character
             newline_flag = 0;
-        } else if (keyboard_buffer[keyboard_index - 1] == '\t') { // deleting extra spaces when tab exists
-            keyboard_buffer[keyboard_index - 1] = '\0';
+        } else if (keyboard_buffer[cur_terminal - 1][keyboard_index - 1] == '\t') { // deleting extra spaces when tab exists
+            keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
             screen_x--;
-            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
                 screen_x--; // update cursor
             }
             keyboard_index--;
 
-            keyboard_buffer[keyboard_index - 1] = '\0';
+            keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
             screen_x--;
-            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
                 screen_x--; // update cursor
             }
             keyboard_index--;
 
-            keyboard_buffer[keyboard_index - 1] = '\0';
+            keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
             screen_x--;
-            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
                 screen_x--; // update cursor
             }
             keyboard_index--;
 
-            keyboard_buffer[keyboard_index - 1] = '\0';
+            keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
             screen_x--;
-            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
                 screen_x--; // update cursor
             }
             keyboard_index--;
         } else {
-            keyboard_buffer[keyboard_index - 1] = '\0';
+            keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
             screen_x--;
-            putc(keyboard_buffer[keyboard_index - 1]); // remove character
+            putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
                 screen_x--; // update cursor
             }
@@ -244,13 +247,13 @@ void keyboard_handler(void) {
     // Filter out invalid or otherwise unhandled scancodes
     if (scan_code < SCAN_CODES && scan_codes_table[scan_code] && !ctrl_flag && !alt_flag && keyboard_index < BUFFER_SIZE - 1) {
         if (shift_flag && !caps_lock_flag) {
-            keyboard_buffer[keyboard_index] = scan_codes_table_shift[scan_code]; // get matching character shifted for scan_code
+            keyboard_buffer[cur_terminal - 1][keyboard_index] = scan_codes_table_shift[scan_code]; // get matching character shifted for scan_code
         } else if (caps_lock_flag && !shift_flag) {
-            keyboard_buffer[keyboard_index] = scan_codes_table_caps[scan_code]; // get matching character for caps locked scan_code
+            keyboard_buffer[cur_terminal - 1][keyboard_index] = scan_codes_table_caps[scan_code]; // get matching character for caps locked scan_code
         } else {
-            keyboard_buffer[keyboard_index] = scan_codes_table[scan_code]; // get matching character for scan_code
+            keyboard_buffer[cur_terminal - 1][keyboard_index] = scan_codes_table[scan_code]; // get matching character for scan_code
         }
-        putc(keyboard_buffer[keyboard_index]); // print to screen
+        putc(keyboard_buffer[cur_terminal - 1][keyboard_index]); // print to screen
         keyboard_index++; // Advance the keyboard buffer index
     }
 
@@ -282,16 +285,16 @@ int terminal_read(int32_t fd, void* buffer, int32_t bytes) {
 
     int output_index = 0; // Index to track the current position in the output buffer
     while (!end_flag && output_index < bytes) {
-        output[output_index] = keyboard_buffer[output_index]; // Copy from keyboard buffer to output buffer
-        if (keyboard_buffer[output_index] == '\0') { // Check for null terminator
+        output[output_index] = keyboard_buffer[cur_terminal - 1][output_index]; // Copy from keyboard buffer to output buffer
+        if (keyboard_buffer[cur_terminal - 1][output_index] == '\0') { // Check for null terminator
             end_flag = 1; // Set end flag if null terminator is found
         }
         output_index++; // Increment index
     }
 
-    if(keyboard_buffer[127] == '\n') { // If trying to read a full 128 character, account for the lack of early null terminator
+    if(keyboard_buffer[cur_terminal - 1][127] == '\n') { // If trying to read a full 128 character, account for the lack of early null terminator
         output_index++;
-        keyboard_buffer[127] = '\0'; // Reset null terminator for future strings
+        keyboard_buffer[cur_terminal - 1][127] = '\0'; // Reset null terminator for future strings
     }
 
     return output_index - 1; // Return number of characters read, excluding the null terminator
