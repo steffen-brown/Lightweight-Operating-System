@@ -135,8 +135,8 @@ void keyboard_handler(void) {
         clear();
     }
 
-    if (alt_flag) {
-        int selected_terminal = scan_code - 0x3A;
+    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) {
+        int selected_terminal = scan_code - 0x01;
 
         if(get_base_thread_pcb(current_PCB)->processID == selected_terminal) {
             return;
@@ -146,7 +146,7 @@ void keyboard_handler(void) {
         register uint32_t saved_ebp asm("ebp");
         current_PCB->EBP = (void*)saved_ebp;
 
-        ProcessControlBlock* top_PCB = get_top_thread_pcb(current_PCB);
+        ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (selected_terminal + 1) * 0x2000));
 
         // If no terminal exists, boot em up!
         if(!(base_shell_booted_bitmask & (1 << selected_terminal))) {

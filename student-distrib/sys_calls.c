@@ -190,7 +190,7 @@ int32_t execute(const uint8_t* command_user) {
     uint8_t shell_to_reboot;
     int base_boot = 0;
 
-    if(strncmp((int8_t*)file_name, "shell", 5)) {
+    if(strncmp((int8_t*)file_name, "shell", 5) == 0) {
         if(shell_init_boot != 0) {
             // Initially booting up a shell
             next_pid = shell_init_boot;
