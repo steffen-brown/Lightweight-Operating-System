@@ -1,8 +1,10 @@
 #include "sys_calls.h"
 
 // The currently active process control block index, initially 0
-static int active_pcb = 0;
-static int active_shell = 0;
+int next_process_pid = 4;
+uint8_t base_shell_live_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB)
+uint8_t base_shell_booted_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB)
+int shell_init_boot = 1;
 
 /*
  * Halts a process and handles the termination or switching to another process.
@@ -52,34 +54,29 @@ int32_t halt(uint32_t status) {
     current_pcb->exitStatus = status;
 
     // Special handling for when the shell (process ID 1) is halted.
-    if (current_pcb->processID == 1) {
+    if (current_pcb->processID >= 1 && current_pcb->processID <= 3) {
         // If the current process is the shell, restart the shell
-        active_pcb--;
-        active_shell--;
+        base_shell_live_bitmask &= ~(1 << current_pcb->processID);
         execute((uint8_t*)"shell");
     } else {
         pdt_entry_page_t new_page;
         // If the current process ics not the shell, return to the parent process
         // Restore parent paging
-        pdt_entry_page_setup(&new_page, current_pcb->parentProcessID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
+        pdt_entry_page_setup(&new_page, ((ProcessControlBlock*)current_pcb->parentPCB)->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
         pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
         flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
 
         // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
         // The calculation for esp0 adjusts the stack pointer based on the process ID, ensuring each process has a unique kernel stack in memory.
         // The magic number 0x800000 represents the start of kernel memory, and 0x2000 (8KB) is the size allocated for each process's kernel stack.
-        tss.esp0 = (uint32_t)(0x800000 - (current_pcb->parentProcessID) * 0x2000); // Adjusts ESP0 for the parent process.
+        tss.esp0 = (uint32_t)(0x800000 - (((ProcessControlBlock*)current_pcb->parentPCB)->processID) * 0x2000); // Adjusts ESP0 for the parent process.
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
         // Restore parent process control block
-        active_pcb--; // Decrement the active process count to reflect the process termination.
-
-        if(strncmp((int8_t*)current_pcb->name, "shell", 5) == 0) {
-            active_shell--;
-        }
+        next_process_pid--; // Decrement the active process count to reflect the process termination.
     }
     
-    uint32_t parent_ebp = (uint32_t)current_pcb->oldEBP;// Retrieves the saved Base Pointer (EBP) of the parent process.
-    halt_return(parent_ebp, parent_ebp, return_value); // Return to parent process
+    uint32_t parent_ebp = (uint32_t)((ProcessControlBlock*)current_pcb->parentPCB)->EBP;// Retrieves the saved Base Pointer (EBP) of the parent process.
+    halt_return(parent_ebp, parent_ebp, return_value);
 
     return 0; // Never reached
 }
@@ -149,6 +146,18 @@ int32_t execute(const uint8_t* command_user) {
     uint8_t command[128]; // Buffer to copy the user command (max size 128) to avoid modifying the original.
     int cnt;
 
+    ProcessControlBlock* current_PCB;
+    // Assembly code to get the current PCB
+    // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_PCB)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
     // Copies the command from user space to a local buffer to ensure safe manipulation.
     for (cnt = 0; cnt < 128; cnt++){
         command[cnt] = command_user[cnt];
@@ -177,41 +186,70 @@ int32_t execute(const uint8_t* command_user) {
         RETURN(-1); // Return command not found
     }
 
-    if(active_pcb + 1 > 6) { // Limit the number of processes running to 3
+    int next_pid;
+    uint8_t shell_to_reboot;
+    int base_boot = 0;
+
+    if(strncmp((int8_t*)file_name, "shell", 5)) {
+        if(shell_init_boot != 0) {
+            // Initially booting up a shell
+            next_pid = shell_init_boot;
+            base_boot = 1;
+            base_shell_booted_bitmask |= 1 << (shell_init_boot - 1); // Update the new shell on the booted shell mask
+            base_shell_live_bitmask = base_shell_booted_bitmask;
+
+            shell_init_boot = 0; // Set the initial boot flag to none
+        } else if((shell_to_reboot = (base_shell_booted_bitmask ^ base_shell_live_bitmask)) != 0) {
+            // If a base shell is open but not alive
+            if(shell_to_reboot == 1) {
+                next_pid = 1;
+            } else if(shell_to_reboot == 2) {
+                next_pid = 2;
+            } else if(shell_to_reboot == 4) {
+                next_pid = 3;
+            }
+            base_shell_live_bitmask = base_shell_booted_bitmask; // Updated the live shells to accont for rebooted shell
+            base_boot = 1;
+        } else {
+            // Secondary shell process is started
+            next_pid = next_process_pid++;
+        }
+    } else {
+        // Secondary non-shell process has started
+        next_pid = next_process_pid++;
+    }
+    
+    if(next_pid > 6) { // Limit the number of processes running to 6
+        next_process_pid--;
         terminal_write(1, "Max number of processes reached!\n", 33);
         RETURN(1);
     }
 
-    if(strncmp((int8_t*)command_user, "shell", 6) == 0) {
-        if(active_shell + 1 > 3) {
-            terminal_write(1, "Max number of shells reached!\n", 30);
-            RETURN(1);
-        }
-        active_shell++;
-    }
-
-    int new_PID = ++active_pcb; // The PID of the process that is being execuated
-
     pdt_entry_page_t new_page;
 
-    pdt_entry_page_setup(&new_page, new_PID + 1, 1); // Get page directory entry for 0x2 4mb page (zero-idxed) with user permissions (1)
+    pdt_entry_page_setup(&new_page, next_pid + 1, 1); // Get page directory entry for 0x2 4mb page (zero-idxed) with user permissions (1)
     // Update virtual memory address 128mb (32nd 4mb page - zero indexed)
     pdt[32] = new_page.val;
     flush_tlb(); // Flush the TLB
 
-    tss.esp0 = 0x800000 - new_PID * 0x2000; // Update the new stack pointer ESP_new = 8MB - PID * 8KB (0x2000)
+    tss.esp0 = 0x800000 - next_pid * 0x2000; // Update the new stack pointer ESP_new = 8MB - PID * 8KB (0x2000)
     // Maybe update tss.ebp
 
     // Load the file into the correct memory location
-    read_data(cur_dentry.inode_num, 0, (uint8_t*)PROGRAM_START, 1048576 - 1024);
+    uint32_t file_length = ((inode_t*)(&g_inodes[cur_dentry.inode_num]))->size;
+    // Load the file into the correct memory location
+    read_data(cur_dentry.inode_num, 0, (uint8_t*)PROGRAM_START, file_length);
 
     // Create PCB at top of new process kernal stack
-    ProcessControlBlock* new_PCB = (void*)(0x800000 - (new_PID + 1) * 0x2000); // Update the new PCB pointer - new_PCB = 8MB - (PID + 1) * 8KB (0x2000)
+    ProcessControlBlock* new_PCB = (void*)(0x800000 - (next_pid + 1) * 0x2000); // Update the new PCB pointer - new_PCB = 8MB - (PID + 1) * 8KB (0x2000)
+    new_PCB->processID = next_pid;
     new_PCB->exitStatus = 0;
-    new_PCB->processID = new_PID;
-    new_PCB->parentProcessID = new_PID - 1; // Revise to be less hard coded?
-    new_PCB->pcbPointerToParent = (void*)(0x800000 - (new_PCB->parentProcessID + 1) * 0x2000); // Update the new PCB parent pointer - new_PCB = 8MB - (parent PID + 1) * 8KB (0x2000)
     strcpy((int8_t*)new_PCB->name, (int8_t*)file_name);
+    new_PCB->parentPCB = base_boot ? 0 : (ProcessControlBlock*)(0x800000 - (current_PCB->processID + 1) * 0x2000); // Update the new PCB parent pointer - new_PCB = 8MB - (parent PID + 1) * 8KB (0x2000)
+    new_PCB->childPCB = (ProcessControlBlock*)0;
+    if(!base_boot) {
+        current_PCB->childPCB = (ProcessControlBlock*)new_PCB;
+    }
 
     // Add stdin and stdout to the file descriptor array
     new_PCB->files[0] = stdin_fd;
@@ -238,6 +276,7 @@ int32_t execute(const uint8_t* command_user) {
         new_PCB->args[i] = command[args_idx];
         args_idx++;
     }
+
     // Set up context switch
     uint32_t ss = USER_DS;
     uint32_t esp = 0x8400000 - 4; // one int32 above the bottom of the user space
@@ -264,8 +303,8 @@ int32_t execute(const uint8_t* command_user) {
 
     // Save the current EBP in the PCB for later return in halt
     register uint32_t saved_ebp asm("ebp");
-    new_PCB->oldEBP = (void*)saved_ebp;
-
+    current_PCB->EBP = (void*)saved_ebp;
+    
     asm volatile (
         "iret\n"          // Return from interrupt
     );
@@ -531,4 +570,24 @@ int32_t set_handler(int32_t signum, void* handler_address) {
 
 int32_t sigreturn(void) {
     return 0;
+}
+
+
+
+// Syscall helpers
+
+ProcessControlBlock* get_top_thread_pcb(ProcessControlBlock* starting_pcb) {
+    while(starting_pcb->childPCB != 0) {
+        starting_pcb = starting_pcb->childPCB;
+    }
+
+    return starting_pcb;
+}
+
+ProcessControlBlock* get_base_thread_pcb(ProcessControlBlock* starting_pcb) {
+    while(starting_pcb->parentPCB != 0) {
+        starting_pcb = starting_pcb->parentPCB;
+    }
+
+    return starting_pcb;
 }

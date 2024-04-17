@@ -8,7 +8,8 @@ interrupts.o: interrupts.c x86_desc.h types.h interrupts.h lib.h i8259.h \
   RTC.h keyboard.h sys_calls.h file_sys.h paging.h
 kernel.o: kernel.c multiboot.h types.h x86_desc.h lib.h i8259.h RTC.h \
   debug.h tests.h interrupts.h keyboard.h paging.h file_sys.h sys_calls.h
-keyboard.o: keyboard.c keyboard.h types.h i8259.h lib.h
+keyboard.o: keyboard.c keyboard.h types.h i8259.h lib.h sys_calls.h \
+  file_sys.h paging.h x86_desc.h RTC.h
 lib.o: lib.c lib.h types.h sys_calls.h file_sys.h paging.h x86_desc.h \
   keyboard.h i8259.h RTC.h
 paging.o: paging.c paging.h x86_desc.h types.h lib.h

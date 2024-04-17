@@ -51,16 +51,21 @@ typedef struct ProcessControlBlock {
     int processID;                   // Unique process identifier
     int exitStatus;                  // Exit status of the process
     FileDescriptor files[8]; // Array of file descriptors
-    void* pcbPointerToParent;        // Pointer to the parent process's PCB, NULL if spawned by start up
     uint8_t args[argsBufferSize];    // Arguments for the process
-    void* oldESP;
     uint8_t name[32];
-    ProcessControlBlock* childPCB;
-    ProcessControlBlock* parentPCB;
+    void* childPCB;
+    void* parentPCB;
+    void* EBP;
 } ProcessControlBlock;
 
-extern void halt_return(uint32_t parent_esp, uint32_t parent_ebp, uint32_t ret_val);
+extern void halt_return(uint32_t parent_ebp, uint32_t parent_esp, uint32_t ret_val);
+extern void return_to_parent(void* parent_ebp);
 
+extern uint8_t base_shell_booted_bitmask;
+extern int shell_init_boot;
+
+ProcessControlBlock* get_top_thread_pcb(ProcessControlBlock* starting_pcb);
+ProcessControlBlock* get_base_thread_pcb(ProcessControlBlock* starting_pcb);
 
 #define RETURN(VALUE) \
     asm volatile ( \

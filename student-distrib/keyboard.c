@@ -1,4 +1,5 @@
 #include "keyboard.h"
+#include "sys_calls.h"
 
 // Directory of letters assocated with each scan code for lowercase
 char scan_codes_table[SCAN_CODES] = {
@@ -65,6 +66,18 @@ void keyboard_init(void) {
  *   SIDE EFFECTS: Prints input to screen
  */
 void keyboard_handler(void) {
+    ProcessControlBlock* current_PCB;
+    // Assembly code to get the current PCB
+    // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_PCB)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
     uint8_t scan_code = inb(KEYBOARD_PORT) & 0xFF; // take in first 8 bits of keyboard input
 
     if (scan_code == LEFT_SHIFT || scan_code == RIGHT_SHIFT) {
@@ -123,12 +136,30 @@ void keyboard_handler(void) {
     }
 
     if (alt_flag) {
-        if (scan_code == F1) { // switches to terminal 1
-            // switch
-        } else if (scan_code == F2) { // switches to terminal 2
-            // switch
-        } else if (scan_code == F3) { // switches to terminal 3
-            // switch
+        int selected_terminal = scan_code - 0x3A;
+
+        if(get_base_thread_pcb(current_PCB)->processID == selected_terminal) {
+            return;
+        }
+
+        // Save current EBP
+        register uint32_t saved_ebp asm("ebp");
+        current_PCB->EBP = (void*)saved_ebp;
+
+        ProcessControlBlock* top_PCB = get_top_thread_pcb(current_PCB);
+
+        // If no terminal exists, boot em up!
+        if(!(base_shell_booted_bitmask & (1 << selected_terminal))) {
+            // set up and switch vid memory
+            shell_init_boot = selected_terminal;
+            execute((uint8_t*)"shell");
+        } else {
+            // Switch vidmem
+
+            // Context switch to prexisiting thread
+            return_to_parent(top_PCB->EBP);
+
+
         }
     }
 

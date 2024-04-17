@@ -1,6 +1,7 @@
 .global sys_calls_handler
 .global sys_calls_handler_end
 .global halt_return
+.global return_to_parent
 
 /*
  * System Call Dispatcher
@@ -67,3 +68,7 @@ halt_return:
     movl %ebp, %esp /* Set stack pointer to base pointer, effectively restoring parent's stack frame */
     jmp sys_calls_handler_end /* Jump to the end of system call handler to restore registers and return */
     
+return_to_parent:
+    movl 8(%esp), %ebp /* Restore parent's base pointer */
+    movl %ebp, %esp /* Set stack pointer to base pointer, effectively restoring parent's stack frame */
+    jmp sys_calls_handler_end /* Jump to the end of system call handler to restore registers and return */
