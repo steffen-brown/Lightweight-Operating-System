@@ -79,6 +79,10 @@ void keyboard_handler(void) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
+    // Get index for screen_x/screen_y arrays by getting base thread/terminal number
+    int cursor_idx;
+    cursor_idx = get_base_thread_pcb(current_PCB)->processID - 1;
+
     uint8_t scan_code = inb(KEYBOARD_PORT) & 0xFF; // take in first 8 bits of keyboard input
 
     if (scan_code == LEFT_SHIFT || scan_code == RIGHT_SHIFT) {
@@ -166,7 +170,7 @@ void keyboard_handler(void) {
         }
     }
 
-    if (scan_code == TAB && keyboard_index + TAB_SPACE < BUFFER_SIZE && screen_x + TAB_SPACE < MAX_LINE) { // handles extra space when tab is pressed
+    if (scan_code == TAB && keyboard_index + TAB_SPACE < BUFFER_SIZE && screen_x[cursor_idx] + TAB_SPACE < MAX_LINE) { // handles extra space when tab is pressed
         if (keyboard_index + 2 < BUFFER_SIZE) {
             keyboard_buffer[cur_terminal - 1][keyboard_index] = '\t';
             putc(' '); // tab space
@@ -193,52 +197,52 @@ void keyboard_handler(void) {
         if (newline_flag && keyboard_buffer[cur_terminal - 1][keyboard_index - 1] == '\n') { // when backspacing to previous line
             keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
             keyboard_buffer[cur_terminal - 1][keyboard_index - 2] = '\0';
-            screen_y--;
-            int cur_y = screen_y; // deal with cursor
-            screen_x = MAX_LINE - 1;
+            screen_y[cursor_idx]--;
+            int cur_y = screen_y[cursor_idx]; // deal with cursor
+            screen_x[cursor_idx] = MAX_LINE - 1;
             putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 2]); // remove character
-            screen_y = cur_y;
-            screen_x = MAX_LINE - 1;
+            screen_y[cursor_idx] = cur_y;
+            screen_x[cursor_idx] = MAX_LINE - 1;
             keyboard_index = keyboard_index - 2; // move before \n and prev character
             newline_flag = 0;
         } else if (keyboard_buffer[cur_terminal - 1][keyboard_index - 1] == '\t') { // deleting extra spaces when tab exists
             keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
-            screen_x--;
+            screen_x[cursor_idx]--;
             putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
-                screen_x--; // update cursor
+                screen_x[cursor_idx]--; // update cursor
             }
             keyboard_index--;
 
             keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
-            screen_x--;
+            screen_x[cursor_idx]--;
             putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
-                screen_x--; // update cursor
+                screen_x[cursor_idx]--; // update cursor
             }
             keyboard_index--;
 
             keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
-            screen_x--;
+            screen_x[cursor_idx]--;
             putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
-                screen_x--; // update cursor
+                screen_x[cursor_idx]--; // update cursor
             }
             keyboard_index--;
 
             keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
-            screen_x--;
+            screen_x[cursor_idx]--;
             putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
-                screen_x--; // update cursor
+                screen_x[cursor_idx]--; // update cursor
             }
             keyboard_index--;
         } else {
             keyboard_buffer[cur_terminal - 1][keyboard_index - 1] = '\0';
-            screen_x--;
+            screen_x[cursor_idx]--;
             putc(keyboard_buffer[cur_terminal - 1][keyboard_index - 1]); // remove character
             if (keyboard_index > 0) {
-                screen_x--; // update cursor
+                screen_x[cursor_idx]--; // update cursor
             }
             keyboard_index--;
         }

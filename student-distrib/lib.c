@@ -40,7 +40,7 @@ void clear(void) {
 
     // Get index for screen_x/screen_y arrays by getting base thread/terminal number
     int cursor_idx;
-    cursor_idx = get_base_thread_pcb(current_pcb);
+    cursor_idx = get_base_thread_pcb(current_pcb)->processID - 1;
     screen_y[cursor_idx] = 0;
     screen_x[cursor_idx] = 0;
 
@@ -207,7 +207,7 @@ void putc(uint8_t c) {
 
     // Get index for screen_x/screen_y arrays by getting base thread/terminal number
     int cursor_idx;
-    cursor_idx = get_base_thread_pcb(current_pcb);
+    cursor_idx = get_base_thread_pcb(current_pcb)->processID - 1;
 
 
     if(c == '\n' || c == '\r') {
