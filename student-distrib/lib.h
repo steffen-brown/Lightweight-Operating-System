@@ -7,8 +7,8 @@
 
 #include "types.h"
 
-extern int screen_x;
-extern int screen_y;
+extern int screen_x[3];
+extern int screen_y[3];
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);
 int32_t puts(int8_t *s);

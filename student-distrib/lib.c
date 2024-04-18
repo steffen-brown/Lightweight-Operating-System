@@ -9,8 +9,10 @@
 #define NUM_ROWS    25
 #define ATTRIB      0x7
 
-int screen_x;
-int screen_y;
+// int screen_x;
+// int screen_y;
+int screen_x[3];
+int screen_y[3];
 static char* video_mem = (char *)VIDEO;
 
 /* void clear(void);
@@ -23,11 +25,10 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
-    screen_y = 0;
-    screen_x = 0;
 
+    // Assembly code to get the current PCB
+    // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
     ProcessControlBlock* current_pcb;
-
     asm volatile (
         "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
         "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
@@ -36,6 +37,12 @@ void clear(void) {
         :                            // No input operands
         : "eax"                      // Clobber list, indicating EAX is modified
     );
+
+    // Get index for screen_x/screen_y arrays by getting base thread/terminal number
+    int cursor_idx;
+    cursor_idx = get_base_thread_pcb(current_pcb)->processID - 1;
+    screen_y[cursor_idx] = 0;
+    screen_x[cursor_idx] = 0;
 
     if(current_pcb->processID == 1) {
         printf("391OS> ");
@@ -186,12 +193,29 @@ int32_t puts(int8_t* s) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
+    // Assembly code to get the current PCB
+    // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    ProcessControlBlock* current_pcb;
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
+    // Get index for screen_x/screen_y arrays by getting base thread/terminal number
+    int cursor_idx;
+    cursor_idx = get_base_thread_pcb(current_pcb)->processID - 1;
+
+
     if(c == '\n' || c == '\r') {
-        screen_y++;
-        screen_x = 0;
+        screen_y[cursor_idx]++;
+        screen_x[cursor_idx] = 0;
 
         int row, col;
-        if(screen_y >= 25) {
+        if(screen_y[cursor_idx] >= 25) {
             for(row = 1; row < NUM_ROWS; row++) {
                 for(col = 0; col < NUM_COLS; col++) {
                     // Calculate the position in video memory of the character to move
@@ -211,14 +235,14 @@ void putc(uint8_t c) {
                 *(dst + 1) = ATTRIB; // Set attribute
             }
 
-            screen_y = NUM_ROWS - 1; // Move cursor to the beginning of the last line
+            screen_y[cursor_idx] = NUM_ROWS - 1; // Move cursor to the beginning of the last line
         }
     } else {
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        screen_x++;
-        screen_x %= NUM_COLS;
-        screen_y = (screen_y + (screen_x / NUM_COLS));
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1) + 1) = ATTRIB;
+        screen_x[cursor_idx]++;
+        screen_x[cursor_idx] %= NUM_COLS;
+        screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
 
     }
 }
