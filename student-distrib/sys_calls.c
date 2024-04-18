@@ -52,6 +52,7 @@ int32_t halt(uint32_t status) {
 
     // Set the exit status in the PCB
     current_pcb->exitStatus = status;
+    ((ProcessControlBlock*)current_pcb->parentPCB)->childPCB = 0;
 
     // Special handling for when the shell (process ID 1) is halted.
     if (current_pcb->processID >= 1 && current_pcb->processID <= 3) {

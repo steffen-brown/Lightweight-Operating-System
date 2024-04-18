@@ -172,18 +172,21 @@ void keyboard_handler(void) {
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
+            send_eoi(1);
             execute((uint8_t*)"shell");
         } else {
             pdt_entry_page_t new_page;
 
             // Restore parent paging
-            pdt_entry_page_setup(&new_page, ((ProcessControlBlock*)current_PCB->parentPCB)->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
+            pdt_entry_page_setup(&new_page, top_PCB->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
             pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
             flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
 
             // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
             tss.esp0 = (uint32_t)(0x800000 - (((ProcessControlBlock*)current_PCB->parentPCB)->processID) * 0x2000); // Adjusts ESP0 for the parent process.
             tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
+
+            send_eoi(1);
 
             // Context switch to prexisiting thread
             return_to_parent(top_PCB->EBP);
