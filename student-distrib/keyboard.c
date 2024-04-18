@@ -168,7 +168,7 @@ void keyboard_handler(void) {
         cur_terminal = selected_terminal;
 
         // If no terminal exists, boot em up!
-        if(!(base_shell_booted_bitmask & (1 << selected_terminal))) {
+        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
@@ -183,7 +183,7 @@ void keyboard_handler(void) {
             flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
 
             // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
-            tss.esp0 = (uint32_t)(0x800000 - (((ProcessControlBlock*)current_PCB->parentPCB)->processID) * 0x2000); // Adjusts ESP0 for the parent process.
+            tss.esp0 = (uint32_t)(0x800000 - top_PCB->processID * 0x2000); // Adjusts ESP0 for the parent process.
             tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
 
             send_eoi(1);

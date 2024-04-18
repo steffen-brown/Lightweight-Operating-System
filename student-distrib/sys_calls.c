@@ -52,12 +52,11 @@ int32_t halt(uint32_t status) {
 
     // Set the exit status in the PCB
     current_pcb->exitStatus = status;
-    ((ProcessControlBlock*)current_pcb->parentPCB)->childPCB = 0;
 
     // Special handling for when the shell (process ID 1) is halted.
     if (current_pcb->processID >= 1 && current_pcb->processID <= 3) {
         // If the current process is the shell, restart the shell
-        base_shell_live_bitmask &= ~(1 << current_pcb->processID);
+        base_shell_live_bitmask &= ~(1 << (current_pcb->processID - 1));
         execute((uint8_t*)"shell");
     } else {
         pdt_entry_page_t new_page;
@@ -74,6 +73,7 @@ int32_t halt(uint32_t status) {
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
         // Restore parent process control block
         next_process_pid--; // Decrement the active process count to reflect the process termination.
+        ((ProcessControlBlock*)current_pcb->parentPCB)->childPCB = 0;
     }
     
     uint32_t parent_ebp = (uint32_t)((ProcessControlBlock*)current_pcb->parentPCB)->EBP;// Retrieves the saved Base Pointer (EBP) of the parent process.
