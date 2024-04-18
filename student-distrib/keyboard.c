@@ -37,6 +37,13 @@ static int ctrl_flag;
 static volatile int enter_flag;
 static int newline_flag;
 static int alt_flag;
+int cur_terminal;
+
+uint8_t* videomem_buffer[NUM_TERMINALS] = {
+    VIDEO_MEM + 1 * FOUR_KB, // Terminal 1 video memory buffer
+    VIDEO_MEM + 2 * FOUR_KB, // Terminal 2 video memory buffer
+    VIDEO_MEM + 3 * FOUR_KB  // Terminal 3 video memory buffer
+};
 
 /*
  * keyboard_init
@@ -57,6 +64,7 @@ void keyboard_init(void) {
     alt_flag = 0;
     cur_terminal = 1;
 }
+
 
 /*
  * keyboard_handler
@@ -81,7 +89,7 @@ void keyboard_handler(void) {
 
     // Get index for screen_x/screen_y arrays by getting base thread/terminal number
     int cursor_idx;
-    cursor_idx = get_base_thread_pcb(current_PCB)->processID - 1;
+    cursor_idx = cur_terminal - 1;
 
     uint8_t scan_code = inb(KEYBOARD_PORT) & 0xFF; // take in first 8 bits of keyboard input
 
@@ -153,22 +161,32 @@ void keyboard_handler(void) {
 
         ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (selected_terminal + 1) * 0x2000));
 
+        // Switch vidmem
+        memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
+        memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
+
+        cur_terminal = selected_terminal;
+
         // If no terminal exists, boot em up!
         if(!(base_shell_booted_bitmask & (1 << selected_terminal))) {
+
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
             execute((uint8_t*)"shell");
-            cur_terminal = selected_terminal;
         } else {
-            // Switch vidmem
-            memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
-            memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
+            pdt_entry_page_t new_page;
 
-            cur_terminal = selected_terminal;
+            // Restore parent paging
+            pdt_entry_page_setup(&new_page, ((ProcessControlBlock*)current_PCB->parentPCB)->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
+            pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
+            flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
+
+            // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
+            tss.esp0 = (uint32_t)(0x800000 - (((ProcessControlBlock*)current_PCB->parentPCB)->processID) * 0x2000); // Adjusts ESP0 for the parent process.
+            tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
+
             // Context switch to prexisiting thread
             return_to_parent(top_PCB->EBP);
-
-
         }
     }
 

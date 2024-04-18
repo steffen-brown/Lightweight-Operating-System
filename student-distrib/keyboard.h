@@ -33,13 +33,7 @@
 #define F3              0x3D    // F3 scan code
 
 char keyboard_buffer[NUM_TERMINALS][BUFFER_SIZE];
-volatile int32_t cur_terminal;
-
-uint8_t* videomem_buffer[NUM_TERMINALS] = {
-    VIDEO_MEM + 1 * FOUR_KB, // Terminal 1 video memory buffer
-    VIDEO_MEM + 2 * FOUR_KB, // Terminal 2 video memory buffer
-    VIDEO_MEM + 3 * FOUR_KB  // Terminal 3 video memory buffer
-};
+extern int cur_terminal;
 
 /* initializes keyboard interrupt on the PIC */
 void keyboard_init(void);
