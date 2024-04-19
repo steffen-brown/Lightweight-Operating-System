@@ -173,7 +173,7 @@ void keyboard_handler(void) {
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
             send_eoi(1);
-            execute((uint8_t*)"shell");
+            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
         } else {
             pdt_entry_page_t new_page;
 

@@ -69,6 +69,7 @@ halt_return:
     jmp sys_calls_handler_end /* Jump to the end of system call handler to restore registers and return */
     
 return_to_parent:
-    movl 8(%esp), %ebp /* Restore parent's base pointer */
+    movl 4(%esp), %ebp /* Restore parent's base pointer */
     movl %ebp, %esp /* Set stack pointer to base pointer, effectively restoring parent's stack frame */
-    jmp sys_calls_handler_end /* Jump to the end of system call handler to restore registers and return */
+    popl %ebp
+    ret /* Jump to the end of system call handler to restore registers and return */
