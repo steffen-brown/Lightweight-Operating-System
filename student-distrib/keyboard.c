@@ -151,45 +151,44 @@ void keyboard_handler(void) {
     if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) {
         int selected_terminal = scan_code - 0x01;
 
-        if(get_base_thread_pcb(current_PCB)->processID == selected_terminal) {
-            return;
-        }
+        if(!(get_base_thread_pcb(current_PCB)->processID == selected_terminal)) {
 
-        // Save current EBP
-        register uint32_t saved_ebp asm("ebp");
-        current_PCB->EBP = (void*)saved_ebp;
+            ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (selected_terminal + 1) * 0x2000));
 
-        ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (selected_terminal + 1) * 0x2000));
+            // Switch vidmem
+            memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
+            memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
 
-        // Switch vidmem
-        memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
-        memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
+            cur_terminal = selected_terminal;
 
-        cur_terminal = selected_terminal;
+            // If no terminal exists, boot em up!
+            if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
 
-        // If no terminal exists, boot em up!
-        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
+                // set up and switch vid memory
+                shell_init_boot = selected_terminal;
+                send_eoi(1);
+                CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
+            } else {
+                // Save current EBP
+                register uint32_t saved_ebp asm("ebp");
+                current_PCB->EBP = (void*)saved_ebp;
 
-            // set up and switch vid memory
-            shell_init_boot = selected_terminal;
-            send_eoi(1);
-            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
-        } else {
-            pdt_entry_page_t new_page;
+                pdt_entry_page_t new_page;
 
-            // Restore parent paging
-            pdt_entry_page_setup(&new_page, top_PCB->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
-            pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
-            flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
+                // Restore parent paging
+                pdt_entry_page_setup(&new_page, top_PCB->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
+                pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
+                flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
 
-            // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
-            tss.esp0 = (uint32_t)(0x800000 - top_PCB->processID * 0x2000); // Adjusts ESP0 for the parent process.
-            tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
+                // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
+                tss.esp0 = (uint32_t)(0x800000 - top_PCB->processID * 0x2000); // Adjusts ESP0 for the parent process.
+                tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
 
-            send_eoi(1);
+                send_eoi(1);
 
-            // Context switch to prexisiting thread
-            return_to_parent(top_PCB->EBP);
+                // Context switch to prexisiting thread
+                return_to_parent(top_PCB->EBP);
+            }
         }
     }
 

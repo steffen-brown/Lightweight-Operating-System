@@ -6,8 +6,8 @@
 #include "lib.h"
 
 #define SCAN_CODES      58      // number of scan codes used
-#define BUFFER_SIZE     128     // size of screen keyboard buffer
-#define MAX_LINE        80      // maximum number of characters per line
+#define BUFFER_SIZE     127     // size of screen keyboard buffer
+#define MAX_LINE        73      // maximum number of characters per line
 #define TAB_SPACE       4       // space for tabs
 #define KEYBOARD_PORT   0x60    // keyboard data port
 #define NUM_TERMINALS   3       // number of terminals
