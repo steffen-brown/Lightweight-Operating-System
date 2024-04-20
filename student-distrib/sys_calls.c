@@ -41,15 +41,6 @@ int32_t halt(uint32_t status) {
         }
     }
 
-    // Disable the virtual memory address for user video memory
-    pt_entry_t disabled_entry;
-    disabled_entry.p = 0;
-    pt_vidmap[0] = disabled_entry.val;
-
-    pdt_entry_table_t disabled_table_entry;
-    disabled_table_entry.p = 0; // present
-    pdt[VID_PDT_IDX] = disabled_table_entry.val;
-
     // Set the exit status in the PCB
     current_pcb->exitStatus = status;
 
