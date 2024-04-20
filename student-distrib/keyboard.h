@@ -26,8 +26,8 @@
 #define ENTER           0x1C    // enter scan code
 #define ENTER_REL       0X9C    // enter released scan code
 #define BACKSPACE       0x0E    // backspace scan code
-#define ALT             0x11    // alt scan code
-#define ALT_REL         0x58    // alt released scan code
+#define ALT             0x38    // alt scan code
+#define ALT_REL         0xB8    // alt released scan code
 #define F1              0x3B    // F1 scan code
 #define F2              0x3C    // F2 scan code
 #define F3              0x3D    // F3 scan code
