@@ -120,6 +120,7 @@ idt_bottom:
 # Make the linkage functions globally accessable
 .global RTC_linkage
 .global keyboard_linkage
+.global PIT_linkage
 .global division_error_linkage
 .global debug_linkage
 .global NMI_linkage
@@ -145,6 +146,7 @@ idt_bottom:
 # Create interrupt linkage for keyboard and RTC
 INT_LINKAGE(RTC_linkage, exc_handler, 0x28, no_error_code) # 0x28: RTC vector
 INT_LINKAGE(keyboard_linkage, exc_handler, 0x21, no_error_code) # 0x21: Keyboard vector
+INT_LINKAGE(PIT_linkage, exc_handler, 0x20, no_error_code) # 0x20: PIT Vector
 
 # Create interrupt linkage for exceptions
 INT_LINKAGE(division_error_linkage, exc_handler, 0x0, no_error_code) # 0x0: Division exception

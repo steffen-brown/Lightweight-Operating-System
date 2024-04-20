@@ -7,6 +7,7 @@
 // See c file for descriptions
 extern void RTC_linkage();
 extern void keyboard_linkage();
+extern void PIT_linkage();
 
 extern void division_error_linkage();
 extern void debug_linkage();

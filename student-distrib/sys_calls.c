@@ -132,6 +132,7 @@ FileOperationsTable rtc_operations_table = {
  * Side Effects: Loads a new program into memory, potentially replacing the currently running program.
  */
 int32_t execute(const uint8_t* command_user) {
+    cli();
     uint8_t file_name[32]; // Buffer to store the extracted file name from the command.
     dir_entry_t cur_dentry; // Directory entry structure to hold file metadata.
     uint8_t file_metadata[28]; // Buffer to temporarily hold the file contents. The size 6000 is chosen based on the expected maximum size of an executable.
@@ -297,6 +298,8 @@ int32_t execute(const uint8_t* command_user) {
     register uint32_t saved_ebp asm("ebp");
     current_PCB->EBP = (void*)saved_ebp;
     
+    sti();
+
     asm volatile (
         "iret\n"          // Return from interrupt
     );

@@ -5,6 +5,7 @@
 #include "RTC.h"
 #include "keyboard.h"
 #include "sys_calls.h"
+#include "pit.h"
 
 /*
  * read_cr2
@@ -84,6 +85,8 @@ void exc_handler(int vector) {
     }
     else if(vector == 0x21) { // 0x21: Keyboard interrupt vector number
         keyboard_handler();
+    } else if(vector == 0x20) {
+        pit_handler();
     }
 
 }
@@ -214,6 +217,10 @@ void setup_IDT() {
     SET_IDT_ENTRY(entry, RTC_linkage);
     set_IDT_entry_metadata(&entry, interrupt);
     idt[0x28] = entry; // 0x28 RTC interrupt vector
+
+    SET_IDT_ENTRY(entry, PIT_linkage);
+    set_IDT_entry_metadata(&entry, interrupt);
+    idt[0x20] = entry; // 0x20 PIT interrupt vector
 
     // Additional entry setup for system call
     SET_IDT_ENTRY(entry, system_call_linkage);
