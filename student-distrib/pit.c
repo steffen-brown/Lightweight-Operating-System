@@ -3,14 +3,14 @@
 #include "i8259.h"
 #include "sys_calls.h"
 
-cur_thread = 1;
+int cur_thread = 1;
 
 void pit_init() {
     cli();
     int divisor = 1193180 / 100; // Calculate the divisor for the PIT
     outb(0x34, 0x43); // Set the PIT to mode 2, rate generator
-    outb(divisor & 0xFF, 0x40); // Set the PIT to 10ms
-    outb((divisor >> 8), 0x40); // Set the PIT to 10ms
+    outb(divisor & 0xFF, 0x40); // Set the PIT to 50ms
+    outb((divisor >> 8), 0x40); // Set the PIT to 50ms
     enable_irq(0); // Enable the PIT on the PIC
     sti();
 }
@@ -35,10 +35,10 @@ void pit_handler() {
     if(cur_thread == 4) {
         cur_thread = 1;
     }
-    if(cur_thread == 2 && !(base_shell_booted_bitmask && 0x2)) {
+    if(cur_thread == 2 && !(base_shell_booted_bitmask & 0x2)) {
         cur_thread++;
     }
-    if(cur_terminal == 3 && !(base_shell_booted_bitmask && 0x4)) {
+    if(cur_thread == 3 && !(base_shell_booted_bitmask & 0x4)) {
         cur_thread = 1;
     }
 
@@ -59,6 +59,18 @@ void pit_handler() {
         // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
         tss.esp0 = (uint32_t)(0x800000 - top_PCB->processID * 0x2000); // Adjusts ESP0 for the parent process.
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
+
+        pt_entry_t vidmem_pt;
+        vidmem_pt.p = 1; // present
+        vidmem_pt.us = 1; // user
+        vidmem_pt.rw = 1;
+        if(cur_terminal == cur_thread) {
+            vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
+        } else {
+            vidmem_pt.address_31_12 = VID_MEM_PHYSICAL + cur_thread; // Should work but doesn't
+        }
+        pt_vidmap[0] = vidmem_pt.val;
+        flush_tlb();
 
         send_eoi(0);
         // Context switch to prexisiting thread

@@ -88,7 +88,7 @@ format_char_switch:
                     switch (*buf) {
                         /* Print a literal '%' character */
                         case '%':
-                            putc('%');
+                            putc('%',0);
                             break;
 
                         /* Use alternate formatting */
@@ -150,7 +150,7 @@ format_char_switch:
 
                         /* Print a single character */
                         case 'c':
-                            putc((uint8_t) *((int32_t *)esp));
+                            putc((uint8_t) *((int32_t *)esp),0);
                             esp++;
                             break;
 
@@ -168,7 +168,7 @@ format_char_switch:
                 break;
 
             default:
-                putc(*buf);
+                putc(*buf, 0);
                 break;
         }
         buf++;
@@ -183,20 +183,24 @@ format_char_switch:
 int32_t puts(int8_t* s) {
     register int32_t index = 0;
     while (s[index] != '\0') {
-        putc(s[index]);
+        putc(s[index], 0);
         index++;
     }
     return index;
+}
+
+void putc_keyboard(uint8_t c) {
+    putc(c, 1);
 }
 
 /* void putc(uint8_t c);
  * Inputs: uint_8* c = character to print
  * Return Value: void
  *  Function: Output a character to the console */
-void putc(uint8_t c) {
+void putc(uint8_t c, int keyboard_print) {
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
-    if ( cur_terminal == cur_thread){
+    if ( cur_terminal == cur_thread || keyboard_print){
 
         // Get index for screen_x/screen_y arrays by getting base thread/terminal number
         int cursor_idx;
@@ -238,12 +242,12 @@ void putc(uint8_t c) {
             screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
 
         }
-}
-    else{ // if printing to a different terminal, don't print to physical video memory
+        
+    } else { // if printing to a different terminal, don't print to physical video memory
  
-        char* terminal_video_mem = (char *)VIDEO + (FOUR_KB * cur_terminal);
+        char* terminal_video_mem = (char *)VIDEO + (FOUR_KB * cur_thread);
         int cursor_idx;
-        cursor_idx = cur_terminal - 1;
+        cursor_idx = cur_thread - 1;
 
         if(c == '\n' || c == '\r') {
             screen_y[cursor_idx]++;
