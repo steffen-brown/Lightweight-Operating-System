@@ -3,6 +3,8 @@
 #include "i8259.h"
 #include "sys_calls.h"
 
+cur_thread = 1;
+
 void pit_init() {
     cli();
     int divisor = 1193180 / 100; // Calculate the divisor for the PIT
