@@ -35,7 +35,7 @@ static int keyboard_index[NUM_TERMINALS]; // global variable for keyboard buffer
 static int shift_flag;
 static int caps_lock_flag;
 static int ctrl_flag;
-static volatile int enter_flag;
+static volatile int enter_flag[3];
 static int newline_flag;
 static int alt_flag;
 int cur_terminal;
@@ -68,7 +68,9 @@ void keyboard_init(void) {
     shift_flag = 0;
     caps_lock_flag = 0;
     ctrl_flag = 0;
-    enter_flag = 0;
+    enter_flag[0] = 0;
+    enter_flag[1] = 0;
+    enter_flag[2] = 0;
     newline_flag = 0;
     alt_flag = 0;
 }
@@ -126,9 +128,9 @@ void keyboard_handler(void) {
     }
 
     if (scan_code == ENTER) { // handles flags when enter is pressed and released
-        enter_flag = 1;
+        enter_flag[cur_terminal] = 1;
     } else if (scan_code == ENTER_REL) {
-        enter_flag = 0;
+        enter_flag[cur_terminal] = 0;
     }
 
     if (keyboard_index[cur_terminal - 1] == MAX_LINE && keyboard_index[cur_terminal - 1] + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
@@ -138,7 +140,7 @@ void keyboard_handler(void) {
         newline_flag = 1;
     }
 
-    if (enter_flag) { // adds newline when enter is hit
+    if (enter_flag[cur_terminal]) { // adds newline when enter is hit
         keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]++] = '\n';
         keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\0';
         putc_keyboard('\n');
@@ -286,9 +288,9 @@ int terminal_read(int32_t fd, void* buffer, int32_t bytes) {
         return 0; // If yes, return 0 immediately
     }
 
-    enter_flag = 0; // Reset enter flag
+    enter_flag[cur_thread] = 0; // Reset enter flag
 
-    while(!enter_flag); // Wait for enter to be pressed
+    while(!enter_flag[cur_thread]); // Wait for enter to be pressed
 
     int end_flag = 0; // Flag to indicate the end of reading
 
