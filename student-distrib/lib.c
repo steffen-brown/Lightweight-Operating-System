@@ -198,9 +198,28 @@ void putc_keyboard(uint8_t c) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c, int keyboard_print) {
+    ProcessControlBlock* current_PCB;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
-    if ( cur_terminal == cur_thread || keyboard_print){
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_PCB)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
+    int cur_thread_local;
+    if(base_shell_booted_bitmask == 0) {
+        cur_thread_local = 1;
+    } else {
+        cur_thread_local = get_base_thread_pcb(current_PCB)->processID;
+    }
+
+    // Assembly code to get the current PCB
+    // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    if ( cur_terminal == cur_thread_local || keyboard_print){
 
         // Get index for screen_x/screen_y arrays by getting base thread/terminal number
         int cursor_idx;
@@ -245,9 +264,9 @@ void putc(uint8_t c, int keyboard_print) {
         
     } else { // if printing to a different terminal, don't print to physical video memory
  
-        char* terminal_video_mem = (char *)VIDEO + (FOUR_KB * cur_thread);
+        char* terminal_video_mem = (char *)VIDEO + (FOUR_KB * cur_thread_local);
         int cursor_idx;
-        cursor_idx = cur_thread - 1;
+        cursor_idx = cur_thread_local - 1;
 
         if(c == '\n' || c == '\r') {
             screen_y[cursor_idx]++;

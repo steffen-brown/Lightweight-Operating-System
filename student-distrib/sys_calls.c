@@ -522,6 +522,18 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
  *  SIDE EFFECTS: changes PDT and Page table for vid map (more of an effect than a side effect)
  */
 int32_t vidmap(uint8_t** screen_start) {
+    ProcessControlBlock* current_pcb;
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
+    int cur_thread_local = get_base_thread_pcb(current_pcb)->processID;
+
     // Step 1: Bound checks
     uint32_t vid_addr = (uint32_t)screen_start;
     if (screen_start == NULL) { // invalid screen start
@@ -548,7 +560,11 @@ int32_t vidmap(uint8_t** screen_start) {
     vidmem_pt.p = 1; // present
     vidmem_pt.us = 1; // user
     vidmem_pt.rw = 1;
-    vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
+    if(cur_terminal == cur_thread_local) {
+        vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
+    } else {
+        vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096 + cur_thread_local;
+    }
     pt_vidmap[0] = vidmem_pt.val;
 
     // Step 3: Flush TLB, update screen start and return
