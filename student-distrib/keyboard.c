@@ -159,23 +159,21 @@ void keyboard_handler(void) {
     if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) {
         int selected_terminal = scan_code - 0x01;
 
-        if(!(get_base_thread_pcb(current_PCB)->processID == selected_terminal)) {
 
-            // Switch vidmem
-            memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
-            memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
+        // Switch vidmem
+        memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
+        memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
 
-            cur_terminal = selected_terminal;
-            cur_thread = selected_terminal;
-            
-            // If no terminal exists, boot em up!
-            if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
+        cur_terminal = selected_terminal;
+        cur_thread = selected_terminal;
+        
+        // If no terminal exists, boot em up!
+        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
 
-                // set up and switch vid memory
-                shell_init_boot = selected_terminal;
-                send_eoi(1);
-                CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
-            }
+            // set up and switch vid memory
+            shell_init_boot = selected_terminal;
+            send_eoi(1);
+            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
         }
     }
 

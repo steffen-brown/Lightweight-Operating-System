@@ -7,7 +7,7 @@ int cur_thread = 1;
 
 void pit_init() {
     cli();
-    int divisor = 1193180 / 100; // Calculate the divisor for the PIT
+    int divisor = 1193180; // Calculate the divisor for the PIT
     outb(0x34, 0x43); // Set the PIT to mode 2, rate generator
     outb(divisor & 0xFF, 0x40); // Set the PIT to 50ms
     outb((divisor >> 8), 0x40); // Set the PIT to 50ms
