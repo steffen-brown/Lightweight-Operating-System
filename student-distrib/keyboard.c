@@ -156,7 +156,7 @@ void keyboard_handler(void) {
         clear();
     }
 
-    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) {
+    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) { 
         int selected_terminal = scan_code - 0x01;
 
 
@@ -168,7 +168,7 @@ void keyboard_handler(void) {
         cur_thread = selected_terminal;
         
         // If no terminal exists, boot em up!
-        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
+        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
