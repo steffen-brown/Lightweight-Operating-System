@@ -1,5 +1,6 @@
 #include "keyboard.h"
 #include "sys_calls.h"
+#include "pit.h"
 
 // Directory of letters assocated with each scan code for lowercase
 char scan_codes_table[SCAN_CODES] = {
@@ -165,6 +166,7 @@ void keyboard_handler(void) {
             memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
 
             cur_terminal = selected_terminal;
+            cur_thread = selected_terminal;
             
             // If no terminal exists, boot em up!
             if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
