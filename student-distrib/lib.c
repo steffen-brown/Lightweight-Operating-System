@@ -45,7 +45,7 @@ void clear(void) {
     screen_y[cursor_idx] = 0;
     screen_x[cursor_idx] = 0;
 
-    if(current_pcb->processID == 1) {
+    if(current_pcb->processID == 1 || current_pcb->processID == 2 || current_pcb->processID == 3) {
         printf("391OS> ");
     }
 }
