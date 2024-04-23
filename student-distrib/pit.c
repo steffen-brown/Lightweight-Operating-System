@@ -14,8 +14,14 @@ void pit_init() {
     enable_irq(0); // Enable the PIT on the PIC
     sti();
 }
+
+static int pit_virt = 0;
  
 void pit_handler() {
+    pit_virt++;
+
+    if(pit_virt % 300 == 0) {
+
     ProcessControlBlock* current_PCB;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
@@ -41,6 +47,10 @@ void pit_handler() {
     if(cur_thread == 3 && !(base_shell_booted_bitmask & 0x4)) {
         cur_thread = 1;
     }
+
+    char* vid = (char *)0xB8000;
+    vid[79 * 2] = cur_thread + 48;
+    vid[79 * 2 + 1] = 0x7;
 
     if(saved_thread != cur_thread) {
         ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (cur_thread + 1) * 0x2000));
@@ -77,5 +87,7 @@ void pit_handler() {
         return_to_parent(top_PCB->EBP);
     }
     
+    
+    }
     send_eoi(0); // Send end of interrupt for the PIT to the pic
 }

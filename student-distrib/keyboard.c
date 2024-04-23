@@ -85,6 +85,7 @@ void keyboard_init(void) {
  *   SIDE EFFECTS: Prints input to screen
  */
 void keyboard_handler(void) {
+    cli();
     ProcessControlBlock* current_PCB;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
@@ -271,6 +272,7 @@ void keyboard_handler(void) {
     }
 
     send_eoi(1); // Send EOI for keyboard to the PIC (IRQ 1)
+    sti();
 }
 
 /*
