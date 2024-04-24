@@ -1,6 +1,7 @@
 #include "keyboard.h"
 #include "sys_calls.h"
 #include "pit.h"
+#include "lib.h"
 
 // Directory of letters assocated with each scan code for lowercase
 char scan_codes_table[SCAN_CODES] = {
@@ -129,9 +130,11 @@ void keyboard_handler(void) {
     }
 
     if (scan_code == ENTER) { // handles flags when enter is pressed and released
-        enter_flag[cur_terminal] = 1;
-    } else if (scan_code == ENTER_REL) {
-        enter_flag[cur_terminal] = 0;
+        enter_flag[cur_terminal - 1] = 1;
+        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]++] = '\n';
+        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\0';
+        putc_keyboard('\n');
+        keyboard_index[cur_terminal - 1] = 0;
     }
 
     if (keyboard_index[cur_terminal - 1] == MAX_LINE && keyboard_index[cur_terminal - 1] + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
@@ -139,14 +142,6 @@ void keyboard_handler(void) {
         putc_keyboard('\n');
         keyboard_index[cur_terminal - 1]++;
         newline_flag = 1;
-    }
-
-    if (enter_flag[cur_terminal]) { // adds newline when enter is hit
-        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]++] = '\n';
-        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\0';
-        putc_keyboard('\n');
-        keyboard_index[cur_terminal - 1] = 0;
-        
     }
 
     if (ctrl_flag && scan_code == L) { // clears screen (ctrl L) 
@@ -157,27 +152,6 @@ void keyboard_handler(void) {
         keyboard_index[cur_terminal - 1] = 0;
         
         clear();
-    }
-
-    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) { 
-        int selected_terminal = scan_code - 0x01;
-
-
-        // Switch vidmem
-        memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
-        memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
-
-        cur_terminal = selected_terminal;
-        cur_thread = selected_terminal;
-        
-        // If no terminal exists, boot em up!
-        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
-
-            // set up and switch vid memory
-            shell_init_boot = selected_terminal;
-            send_eoi(1);
-            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
-        }
     }
 
     if (scan_code == TAB && keyboard_index[cur_terminal - 1] + TAB_SPACE < BUFFER_SIZE && screen_x[cursor_idx] + TAB_SPACE < MAX_LINE) { // handles extra space when tab is pressed
@@ -271,7 +245,39 @@ void keyboard_handler(void) {
         keyboard_index[cur_terminal - 1]++; // Advance the keyboard buffer index
     }
 
-    send_eoi(1); // Send EOI for keyboard to the PIC (IRQ 1)
+    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) { 
+        int selected_terminal = scan_code - 0x01;
+
+
+        // Switch vidmem
+        memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
+        memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
+
+        cur_terminal = selected_terminal;
+        
+        // If no terminal exists, boot em up!
+        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
+
+            // set up and switch vid memory
+            shell_init_boot = selected_terminal;
+            send_eoi(1);
+            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
+        }
+    }
+
+    asm volatile (
+        "movl $0, %%eax\n"          // Clear eax to use it for setting debug registers to 0
+        "movl %%eax, %%dr0\n"       // Clear DR0
+        "movl %%eax, %%dr1\n"       // Clear DR1
+        "movl %%eax, %%dr2\n"       // Clear DR2
+        "movl %%eax, %%dr3\n"       // Clear DR3
+        "movl %%eax, %%dr7\n"       // Clear DR7 - disables all breakpoints
+        :
+        :
+        : "eax"                     // Clobber list, eax is modified
+    );
+
+    outb(0x61, 0x20);
     sti();
 }
 
@@ -290,9 +296,9 @@ int terminal_read(int32_t fd, void* buffer, int32_t bytes) {
         return 0; // If yes, return 0 immediately
     }
 
-    enter_flag[cur_thread] = 0; // Reset enter flag
+    enter_flag[cur_thread - 1] = 0; // Reset enter flag
 
-    while(!enter_flag[cur_thread]); // Wait for enter to be pressed
+    while(!enter_flag[cur_thread - 1]); // Wait for enter to be pressed
 
     int end_flag = 0; // Flag to indicate the end of reading
 

@@ -7,7 +7,7 @@ int cur_thread = 1;
 
 void pit_init() {
     cli();
-    int divisor = PIT_FREQ / 100; // Calculate the divisor for the PIT
+    int divisor = PIT_FREQ / 1000; // Calculate the divisor for the PIT
     outb(0x34, 0x43); // Set the PIT to mode 2, rate generator
     outb(divisor & 0xFF, 0x40); // Set the PIT to 50ms
     outb((divisor >> 8), 0x40); // Set the PIT to 50ms
@@ -20,8 +20,7 @@ static int pit_virt = 0;
 void pit_handler() {
     pit_virt++;
 
-    if(pit_virt % 300 == 0) {
-
+    if(pit_virt % 1 == 0) {
     ProcessControlBlock* current_PCB;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary

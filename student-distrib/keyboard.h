@@ -48,21 +48,9 @@ extern int terminal_open(const uint8_t* filename);
 extern int terminal_close(int32_t fd);
 
 #define CONTEXT_SAVE_CALL(func, ...) ({        \
-    __asm__ volatile (                     \
-        "pushal\n\t"                       /* Save all general purpose registers */ \
-        "pushf\n\t"                        /* Save flags register */ \
-        : /* No output operands */         \
-        : /* No input operands */          \
-        : "memory"                         /* Tell compiler that memory is clobbered */ \
-    );                                     \
+                            \
     func(__VA_ARGS__);                     /* Call the function with variable arguments */ \
-    __asm__ volatile (                     \
-        "popf\n\t"                         /* Restore flags register */ \
-        "popal\n\t"                        /* Restore all general purpose registers */ \
-        : /* No output operands */         \
-        : /* No input operands */          \
-        : "memory"                         /* Tell compiler that memory is clobbered */ \
-    );                                     \
+                                 \
 })
 
 #endif

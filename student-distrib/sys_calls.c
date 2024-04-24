@@ -134,7 +134,6 @@ FileOperationsTable rtc_operations_table = {
  */
 int32_t execute(const uint8_t* command_user) {
     cli();
-    cur_thread = cur_terminal;
     uint8_t file_name[32]; // Buffer to store the extracted file name from the command.
     dir_entry_t cur_dentry; // Directory entry structure to hold file metadata.
     uint8_t file_metadata[28]; // Buffer to temporarily hold the file contents. The size 6000 is chosen based on the expected maximum size of an executable.
