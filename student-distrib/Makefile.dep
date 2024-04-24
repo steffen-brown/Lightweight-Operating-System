@@ -16,7 +16,7 @@ lib.o: lib.c lib.h types.h sys_calls.h file_sys.h paging.h x86_desc.h \
 paging.o: paging.c paging.h x86_desc.h types.h lib.h
 pit.o: pit.c pit.h types.h lib.h i8259.h sys_calls.h file_sys.h paging.h \
   x86_desc.h keyboard.h RTC.h
-RTC.o: RTC.c RTC.h types.h lib.h i8259.h
+RTC.o: RTC.c RTC.h types.h lib.h i8259.h pit.h
 sys_calls.o: sys_calls.c sys_calls.h types.h file_sys.h lib.h paging.h \
   x86_desc.h keyboard.h i8259.h RTC.h pit.h
 tests.o: tests.c tests.h x86_desc.h types.h lib.h i8259.h RTC.h \

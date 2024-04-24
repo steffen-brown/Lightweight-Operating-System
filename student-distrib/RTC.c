@@ -1,6 +1,7 @@
 #include "RTC.h"
 #include "lib.h"
 #include "i8259.h"
+#include "pit.h"
 
 #define RTC_cmd 0x70
 #define RTC_data 0x71
@@ -8,9 +9,9 @@
 #define RTC_register_A 0x8A
 #define RTC_register_B 0x8B
 
-#define INIT_RATE 15
+#define INIT_RATE 2
 
-volatile int rtc_flag;
+volatile int rtc_flag[3];
 
 /*
  * RTC_init
@@ -33,6 +34,9 @@ void RTC_init() {
 	enable_irq(8); // Enable RTC on the PIC
 }
 
+uint32_t current_freqency = 16384;
+uint32_t cycle = 0;
+
 /*
  * RTC_handler
  *   DESCRIPTION: The interrupt handler for the Real-Time Clock (RTC). It disables interrupts
@@ -48,10 +52,15 @@ void RTC_init() {
  */
 void RTC_handler() {
 	cli(); // Disable interrupts
-	//test_interrupts(); // Call screen flash
+	
+	if(cycle % (16384 / current_freqency) == 0) {
+		
+		rtc_flag[cur_thread] = 0;
+		
+	}
+
 	outb(0x0C, RTC_cmd); // Unlock the RTC (byte 0x0C)
 	inb(RTC_data); // Allowing it to send more interrupts
-	rtc_flag = 0;
 	send_eoi(8); // Send end of interrupt for the RTC to the pic
 	sti(); // Enable interrupts 
 }
@@ -65,7 +74,7 @@ void RTC_handler() {
  *   SIDE EFFECTS: Modifies the rate in register A, affecting interrupt frequency.
  */
 int rtc_open(const uint8_t* filename) {
-	rtc_flag = 0; // Reset the RTC interrupt flag
+	rtc_flag[cur_thread] = 0; // Reset the RTC interrupt flag
 
 	cli(); // Disable interrupts
 
@@ -126,15 +135,17 @@ int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
 	if(rate < 3 || rate > 15) // RTC rate valid range
 		return -1; // Invalid rate
 
-	// Set the rate in register A
-	cli(); // Disable interrupts
+	current_freqency = frequency;
 
-	outb(RTC_register_A, RTC_cmd); // Select register A
-	char prev = inb(RTC_data); // Read current value of register A
-	outb(RTC_register_A, RTC_cmd); // Re-select register A
-	outb((prev & 0xF0) | rate, RTC_data); // Set new rate
+	// // Set the rate in register A
+	// cli(); // Disable interrupts
 
-	sti(); // Enable interrupts
+	// outb(RTC_register_A, RTC_cmd); // Select register A
+	// char prev = inb(RTC_data); // Read current value of register A
+	// outb(RTC_register_A, RTC_cmd); // Re-select register A
+	// outb((prev & 0xF0) | rate, RTC_data); // Set new rate
+
+	// sti(); // Enable interrupts
 
 	return 0; // Success
 }
@@ -149,10 +160,10 @@ int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
  *   SIDE EFFECTS: Blocks until an RTC interrupt occurs.
  */
 int rtc_read(int32_t fd, void* buf, int32_t nbytes) {
-	rtc_flag = 1; // Set the flag to wait for an interrupt
+	rtc_flag[cur_thread] = 1; // Set the flag to wait for an interrupt
 
 	// Wait for the RTC interrupt handler to clear the flag
-	while(rtc_flag == 1) {};
+	while(rtc_flag[cur_thread] == 1) {};
 
 	return 0; // Success
 }
