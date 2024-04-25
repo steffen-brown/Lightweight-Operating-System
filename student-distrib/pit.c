@@ -7,7 +7,7 @@ int cur_thread = 1;
 
 void pit_init() {
     cli();
-    int divisor = PIT_FREQ / 1000; // Calculate the divisor for the PIT
+    int divisor = PIT_FREQ / 100; // Calculate the divisor for the PIT
     outb(0x34, 0x43); // Set the PIT to mode 2, rate generator
     outb(divisor & 0xFF, 0x40); // Set the PIT to 50ms
     outb((divisor >> 8), 0x40); // Set the PIT to 50ms
@@ -89,4 +89,8 @@ void pit_handler() {
     
     }
     send_eoi(0); // Send end of interrupt for the PIT to the pic
+}
+
+int get_current_thread() {
+    return cur_thread-1;
 }

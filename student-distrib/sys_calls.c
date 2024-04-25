@@ -4,7 +4,7 @@
 // The currently active process control block index, initially 0
 int next_process_pid = 4;
 uint8_t base_shell_live_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB)
-uint8_t base_shell_booted_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB)
+uint8_t base_shell_booted_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB) 
 int shell_init_boot = 1;
 
 /*
@@ -422,6 +422,7 @@ int32_t open(const uint8_t* filename) {
         current_pcb->files[i].operationsTable = rtc_operations_table;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
+        current_pcb->files[i].operationsTable.open((uint8_t*)"rtc");
         RETURN(i); // Return FD number
     } else if (file_type == 1) { // Directory file
         current_pcb->files[i].operationsTable = dir_operations_table;

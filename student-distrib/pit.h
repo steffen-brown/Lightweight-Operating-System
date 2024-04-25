@@ -9,4 +9,5 @@ void pit_init();
 void pit_handler();
 
 extern int cur_thread;
+extern int get_current_thread();
 #endif
