@@ -189,6 +189,7 @@ int32_t execute(const uint8_t* command_user) {
             // Initially booting up a shell
             next_pid = shell_init_boot;
             base_boot = 1;
+            
             base_shell_booted_bitmask |= 1 << (shell_init_boot - 1); // Update the new shell on the booted shell mask
             base_shell_live_bitmask = base_shell_booted_bitmask;
 

@@ -120,13 +120,13 @@ void disable_irq(uint32_t irq_num) {
  *   SIDE EFFECTS: Signals the 8259 PIC to resume sending interrupts for the specified IRQ line.
  */
 void send_eoi(uint32_t irq_num) {
-
+    cli();
     if(irq_num >= 8) { // If IRQ is connected to secondary PIC (IRQ >= 8)
         outb(EOI + (irq_num - 8), SLAVE_8259_PORT); // Send EOI for approriate IRQ port on secondary pic (offset 8)
         outb(EOI + 2, MASTER_8259_PORT); // Send EOI for IRQ 2 on the primary pic
     } else {
         outb(EOI + irq_num, MASTER_8259_PORT); // Send EOI for approriate IRQ port on primary pic
     }
-
+    sti();
 }
 

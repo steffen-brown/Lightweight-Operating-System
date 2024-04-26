@@ -63,11 +63,6 @@ void RTC_handler() {
         }
     }
 
-    if(curThread == 1) {
-        int k = 0;
-    }
-
-
 	if((rtc_counter[curThread] % (MAX_FREQ / (rtc_freq[curThread] * threads_active))) == 0) {
         // if(rtc_counter[curThread] % 256 == 0) {
 			rtc_flag[curThread] = 0;
@@ -99,11 +94,12 @@ void RTC_handler() {
  *   SIDE EFFECTS: Modifies the rate in register A, affecting interrupt frequency.
  */
 int rtc_open(const uint8_t* filename) {
+    cli(); // Disable interrupts
 	int curThread = get_current_thread();
     rtc_flag[curThread] = 0; // Reset the RTC interrupt
 	// uint32_t rate = rate_cal(RTC_FREQ); // Calculate rate based on default frequency
 	// rate &= 0x0F; // rate must be above 2 and not over 15
-    cli(); // Disable interrupts
+    
 
     // Set initial rate in register A
     outb(RTC_register_A, RTC_cmd); // Select register A

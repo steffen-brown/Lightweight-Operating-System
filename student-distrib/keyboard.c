@@ -331,6 +331,7 @@ int terminal_read(int32_t fd, void* buffer, int32_t bytes) {
  *   SIDE EFFECTS: Outputs the contents of the buffer to the terminal
  */
 int terminal_write(int32_t fd, const void* buffer, int32_t bytes) {
+    cli();
     if (buffer == NULL || bytes == 0) { // Check for invalid buffer or request to write 0 bytes
         return -1; // Return error code -1
     }
@@ -350,6 +351,7 @@ int terminal_write(int32_t fd, const void* buffer, int32_t bytes) {
 
     }
 
+    sti();
     return bytes_written; // Return the total number of bytes written
 
 }
