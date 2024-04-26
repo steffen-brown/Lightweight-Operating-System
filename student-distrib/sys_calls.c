@@ -422,20 +422,18 @@ int32_t open(const uint8_t* filename) {
         current_pcb->files[i].operationsTable = rtc_operations_table;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
-        current_pcb->files[i].operationsTable.open(filename);
+        current_pcb->files[i].operationsTable.open((uint8_t*)"rtc");
         RETURN(i); // Return FD number
     } else if (file_type == 1) { // Directory file
         current_pcb->files[i].operationsTable = dir_operations_table;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
-        current_pcb->files[i].operationsTable.open(filename);
         RETURN(i); // Return FD number
     } else if (file_type == 2) { // Regular file
         current_pcb->files[i].operationsTable = file_operations_table;
         current_pcb->files[i].inode = dentry.inode_num;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
-        current_pcb->files[i].operationsTable.open(filename);
         RETURN(i); // Return FD number
     }
     
