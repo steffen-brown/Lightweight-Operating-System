@@ -1,5 +1,7 @@
 #include "keyboard.h"
 #include "sys_calls.h"
+#include "pit.h"
+#include "lib.h"
 
 // Directory of letters assocated with each scan code for lowercase
 char scan_codes_table[SCAN_CODES] = {
@@ -34,7 +36,7 @@ static int keyboard_index[NUM_TERMINALS]; // global variable for keyboard buffer
 static int shift_flag;
 static int caps_lock_flag;
 static int ctrl_flag;
-static volatile int enter_flag;
+static volatile int enter_flag[3];
 static int newline_flag;
 static int alt_flag;
 int cur_terminal;
@@ -67,7 +69,9 @@ void keyboard_init(void) {
     shift_flag = 0;
     caps_lock_flag = 0;
     ctrl_flag = 0;
-    enter_flag = 0;
+    enter_flag[0] = 0;
+    enter_flag[1] = 0;
+    enter_flag[2] = 0;
     newline_flag = 0;
     alt_flag = 0;
 }
@@ -82,6 +86,7 @@ void keyboard_init(void) {
  *   SIDE EFFECTS: Prints input to screen
  */
 void keyboard_handler(void) {
+    cli();
     ProcessControlBlock* current_PCB;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
@@ -125,24 +130,18 @@ void keyboard_handler(void) {
     }
 
     if (scan_code == ENTER) { // handles flags when enter is pressed and released
-        enter_flag = 1;
-    } else if (scan_code == ENTER_REL) {
-        enter_flag = 0;
+        enter_flag[cur_terminal - 1] = 1;
+        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]++] = '\n';
+        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\0';
+        putc_keyboard('\n');
+        keyboard_index[cur_terminal - 1] = 0;
     }
 
     if (keyboard_index[cur_terminal - 1] == MAX_LINE && keyboard_index[cur_terminal - 1] + 1 < BUFFER_SIZE) { // adds new line when end of line is reached
         keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\n';
-        putc('\n');
+        putc_keyboard('\n');
         keyboard_index[cur_terminal - 1]++;
         newline_flag = 1;
-    }
-
-    if (enter_flag) { // adds newline when enter is hit
-        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]++] = '\n';
-        keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\0';
-        putc('\n');
-        keyboard_index[cur_terminal - 1] = 0;
-        
     }
 
     if (ctrl_flag && scan_code == L) { // clears screen (ctrl L) 
@@ -155,69 +154,25 @@ void keyboard_handler(void) {
         clear();
     }
 
-    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) {
-        int selected_terminal = scan_code - 0x01;
-
-        if(!(get_base_thread_pcb(current_PCB)->processID == selected_terminal)) {
-
-            ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (selected_terminal + 1) * 0x2000));
-
-            // Switch vidmem
-            memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
-            memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
-
-            cur_terminal = selected_terminal;
-
-            // If no terminal exists, boot em up!
-            if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) {
-
-                // set up and switch vid memory
-                shell_init_boot = selected_terminal;
-                send_eoi(1);
-                CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
-            } else {
-                // Save current EBP
-                register uint32_t saved_ebp asm("ebp");
-                current_PCB->EBP = (void*)saved_ebp;
-
-                pdt_entry_page_t new_page;
-
-                // Restore parent paging
-                pdt_entry_page_setup(&new_page, top_PCB->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
-                pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
-                flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
-
-                // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
-                tss.esp0 = (uint32_t)(0x800000 - top_PCB->processID * 0x2000); // Adjusts ESP0 for the parent process.
-                tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
-
-                send_eoi(1);
-
-                // Context switch to prexisiting thread
-                return_to_parent(top_PCB->EBP);
-            }
-        }
-    }
-
     if (scan_code == TAB && keyboard_index[cur_terminal - 1] + TAB_SPACE < BUFFER_SIZE && screen_x[cursor_idx] + TAB_SPACE < MAX_LINE) { // handles extra space when tab is pressed
         if (keyboard_index[cur_terminal - 1] + 2 < BUFFER_SIZE) {
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\t';
-            putc(' '); // tab space
+            putc_keyboard(' '); // tab space
             keyboard_index[cur_terminal - 1]++;
         }
         if (keyboard_index[cur_terminal - 1] + 2 < BUFFER_SIZE) {
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\t';
-            putc(' '); // tab space
+            putc_keyboard(' '); // tab space
             keyboard_index[cur_terminal - 1]++;
         }
         if (keyboard_index[cur_terminal - 1] + 2 < BUFFER_SIZE) {
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\t';
-            putc(' '); // tab space
+            putc_keyboard(' '); // tab space
             keyboard_index[cur_terminal - 1]++;
         }
         if (keyboard_index[cur_terminal - 1] + 2 < BUFFER_SIZE) {
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = '\t';
-            putc(' '); // tab space
+            putc_keyboard(' '); // tab space
             keyboard_index[cur_terminal - 1]++;
         }
     }
@@ -229,7 +184,7 @@ void keyboard_handler(void) {
             screen_y[cursor_idx]--;
             int cur_y = screen_y[cursor_idx]; // deal with cursor
             screen_x[cursor_idx] = MAX_LINE - 1;
-            putc(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 2]); // remove character
+            putc_keyboard(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 2]); // remove character
             screen_y[cursor_idx] = cur_y;
             screen_x[cursor_idx] = MAX_LINE - 1;
             keyboard_index[cur_terminal - 1] = keyboard_index[cur_terminal - 1] - 2; // move before \n and prev character
@@ -237,7 +192,7 @@ void keyboard_handler(void) {
         } else if (keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1] == '\t') { // deleting extra spaces when tab exists
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1] = '\0';
             screen_x[cursor_idx]--;
-            putc(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
+            putc_keyboard(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
             if (keyboard_index[cur_terminal - 1] > 0) {
                 screen_x[cursor_idx]--; // update cursor
             }
@@ -245,7 +200,7 @@ void keyboard_handler(void) {
 
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1] = '\0';
             screen_x[cursor_idx]--;
-            putc(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
+            putc_keyboard(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
             if (keyboard_index[cur_terminal - 1] > 0) {
                 screen_x[cursor_idx]--; // update cursor
             }
@@ -253,7 +208,7 @@ void keyboard_handler(void) {
 
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1] = '\0';
             screen_x[cursor_idx]--;
-            putc(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
+            putc_keyboard(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
             if (keyboard_index[cur_terminal - 1] > 0) {
                 screen_x[cursor_idx]--; // update cursor
             }
@@ -261,7 +216,7 @@ void keyboard_handler(void) {
 
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1] = '\0';
             screen_x[cursor_idx]--;
-            putc(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
+            putc_keyboard(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
             if (keyboard_index[cur_terminal - 1] > 0) {
                 screen_x[cursor_idx]--; // update cursor
             }
@@ -269,7 +224,7 @@ void keyboard_handler(void) {
         } else {
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1] = '\0';
             screen_x[cursor_idx]--;
-            putc(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
+            putc_keyboard(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1] - 1]); // remove character
             if (keyboard_index[cur_terminal - 1] > 0) {
                 screen_x[cursor_idx]--; // update cursor
             }
@@ -286,11 +241,44 @@ void keyboard_handler(void) {
         } else {
             keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]] = scan_codes_table[scan_code]; // get matching character for scan_code
         }
-        putc(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]]); // print to screen
+        putc_keyboard(keyboard_buffer[cur_terminal - 1][keyboard_index[cur_terminal - 1]]); // print to screen
         keyboard_index[cur_terminal - 1]++; // Advance the keyboard buffer index
     }
 
-    send_eoi(1); // Send EOI for keyboard to the PIC (IRQ 1)
+    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) { 
+        int selected_terminal = scan_code - 0x01;
+
+
+        // Switch vidmem
+        memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
+        memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
+
+        cur_terminal = selected_terminal;
+        
+        // If no terminal exists, boot em up!
+        if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
+
+            // set up and switch vid memory
+            shell_init_boot = selected_terminal;
+            send_eoi(1);
+            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
+        }
+    }
+
+    asm volatile (
+        "movl $0, %%eax\n"          // Clear eax to use it for setting debug registers to 0
+        "movl %%eax, %%dr0\n"       // Clear DR0
+        "movl %%eax, %%dr1\n"       // Clear DR1
+        "movl %%eax, %%dr2\n"       // Clear DR2
+        "movl %%eax, %%dr3\n"       // Clear DR3
+        "movl %%eax, %%dr7\n"       // Clear DR7 - disables all breakpoints
+        :
+        :
+        : "eax"                     // Clobber list, eax is modified
+    );
+
+    outb(0x61, 0x20);
+    sti();
 }
 
 /*
@@ -308,9 +296,9 @@ int terminal_read(int32_t fd, void* buffer, int32_t bytes) {
         return 0; // If yes, return 0 immediately
     }
 
-    enter_flag = 0; // Reset enter flag
+    enter_flag[cur_thread - 1] = 0; // Reset enter flag
 
-    while(!enter_flag); // Wait for enter to be pressed
+    while(!enter_flag[cur_thread - 1]); // Wait for enter to be pressed
 
     int end_flag = 0; // Flag to indicate the end of reading
 
@@ -354,9 +342,9 @@ int terminal_write(int32_t fd, const void* buffer, int32_t bytes) {
     int i;
     for(i = 0; i < bytes; i++) { // Iterate over each byte in the input buffer
         if(input[i] == '\t') {
-            putc(' ');
+            putc(' ', 0);
         } else {
-            putc(input[i]); // Write each byte to the terminal
+            putc(input[i], 0); // Write each byte to the terminal
         }
         bytes_written++; // Increment the written byte count
 

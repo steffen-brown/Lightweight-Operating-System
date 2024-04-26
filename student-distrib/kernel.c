@@ -14,6 +14,7 @@
 #include "paging.h"
 #include "file_sys.h"
 #include "sys_calls.h"
+#include "pit.h"
 #define RUN_TESTS
 
 
@@ -160,6 +161,7 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Initialize and enable to keyboard*/
     keyboard_init();
     RTC_init(); // Initalize and enable the RTC
+    pit_init();
 
     
     /* Enable interrupts */

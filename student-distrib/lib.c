@@ -3,7 +3,8 @@
 
 #include "lib.h"
 #include "sys_calls.h"
-
+#include "keyboard.h"
+#include "pit.h"
 #define VIDEO       0xB8000
 #define NUM_COLS    80
 #define NUM_ROWS    25
@@ -87,7 +88,7 @@ format_char_switch:
                     switch (*buf) {
                         /* Print a literal '%' character */
                         case '%':
-                            putc('%');
+                            putc('%',0);
                             break;
 
                         /* Use alternate formatting */
@@ -149,7 +150,7 @@ format_char_switch:
 
                         /* Print a single character */
                         case 'c':
-                            putc((uint8_t) *((int32_t *)esp));
+                            putc((uint8_t) *((int32_t *)esp),0);
                             esp++;
                             break;
 
@@ -167,7 +168,7 @@ format_char_switch:
                 break;
 
             default:
-                putc(*buf);
+                putc(*buf, 0);
                 break;
         }
         buf++;
@@ -182,68 +183,126 @@ format_char_switch:
 int32_t puts(int8_t* s) {
     register int32_t index = 0;
     while (s[index] != '\0') {
-        putc(s[index]);
+        putc(s[index], 0);
         index++;
     }
     return index;
+}
+
+void putc_keyboard(uint8_t c) {
+    putc(c, 1);
 }
 
 /* void putc(uint8_t c);
  * Inputs: uint_8* c = character to print
  * Return Value: void
  *  Function: Output a character to the console */
-void putc(uint8_t c) {
+void putc(uint8_t c, int keyboard_print) {
+    ProcessControlBlock* current_PCB;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
-    ProcessControlBlock* current_pcb;
     asm volatile (
         "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
         "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
         "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
-        : "=r" (current_pcb)        // Output operands
+        : "=r" (current_PCB)        // Output operands
         :                            // No input operands
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    // Get index for screen_x/screen_y arrays by getting base thread/terminal number
-    int cursor_idx;
-    cursor_idx = cur_terminal - 1;
-
-
-    if(c == '\n' || c == '\r') {
-        screen_y[cursor_idx]++;
-        screen_x[cursor_idx] = 0;
-
-        int row, col;
-        if(screen_y[cursor_idx] >= 25) {
-            for(row = 1; row < NUM_ROWS; row++) {
-                for(col = 0; col < NUM_COLS; col++) {
-                    // Calculate the position in video memory of the character to move
-                    char *src = video_mem + ((NUM_COLS * row + col) << 1);
-                    char *dst = video_mem + ((NUM_COLS * (row - 1) + col) << 1);
-
-                    // Copy character and attribute from the source row to the destination row
-                    *dst = *src; // Copy character
-                    *(dst + 1) = *(src + 1); // Copy attribute
-                }
-            }
-
-            // Clear the last line
-            for(col = 0; col < NUM_COLS; col++) {
-                char *dst = video_mem + ((NUM_COLS * (NUM_ROWS - 1) + col) << 1);
-                *dst = ' '; // Set character to space
-                *(dst + 1) = ATTRIB; // Set attribute
-            }
-
-            screen_y[cursor_idx] = NUM_ROWS - 1; // Move cursor to the beginning of the last line
-        }
+    int cur_thread_local;
+    if(base_shell_booted_bitmask == 0) {
+        cur_thread_local = 1;
     } else {
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1) + 1) = ATTRIB;
-        screen_x[cursor_idx]++;
-        screen_x[cursor_idx] %= NUM_COLS;
-        screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
+        cur_thread_local = get_base_thread_pcb(current_PCB)->processID;
+    }
 
+    // Assembly code to get the current PCB
+    // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
+    if ( cur_terminal == cur_thread_local || keyboard_print){
+
+        // Get index for screen_x/screen_y arrays by getting base thread/terminal number
+        int cursor_idx;
+        cursor_idx = cur_terminal - 1;
+
+
+        if(c == '\n' || c == '\r') {
+            screen_y[cursor_idx]++;
+            screen_x[cursor_idx] = 0;
+
+            int row, col;
+            if(screen_y[cursor_idx] >= 25) {
+                for(row = 1; row < NUM_ROWS; row++) {
+                    for(col = 0; col < NUM_COLS; col++) {
+                        // Calculate the position in video memory of the character to move
+                        char *src = video_mem + ((NUM_COLS * row + col) << 1);
+                        char *dst = video_mem + ((NUM_COLS * (row - 1) + col) << 1);
+
+                        // Copy character and attribute from the source row to the destination row
+                        *dst = *src; // Copy character
+                        *(dst + 1) = *(src + 1); // Copy attribute
+                    }
+                }
+
+                // Clear the last line
+                for(col = 0; col < NUM_COLS; col++) {
+                    char *dst = video_mem + ((NUM_COLS * (NUM_ROWS - 1) + col) << 1);
+                    *dst = ' '; // Set character to space
+                    *(dst + 1) = ATTRIB; // Set attribute
+                }
+
+                screen_y[cursor_idx] = NUM_ROWS - 1; // Move cursor to the beginning of the last line
+            }
+        } else {
+            *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1)) = c;
+            *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1) + 1) = ATTRIB;
+            screen_x[cursor_idx]++;
+            screen_x[cursor_idx] %= NUM_COLS;
+            screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
+
+        }
+        
+    } else { // if printing to a different terminal, don't print to physical video memory
+ 
+        char* terminal_video_mem = (char *)VIDEO + (FOUR_KB * cur_thread_local);
+        int cursor_idx;
+        cursor_idx = cur_thread_local - 1;
+
+        if(c == '\n' || c == '\r') {
+            screen_y[cursor_idx]++;
+            screen_x[cursor_idx] = 0;
+
+            int row, col;
+            if(screen_y[cursor_idx] >= 25) {
+                for(row = 1; row < NUM_ROWS; row++) {
+                    for(col = 0; col < NUM_COLS; col++) {
+                        // Calculate the position in video memory of the character to move
+                        char *src = terminal_video_mem + ((NUM_COLS * row + col) << 1);
+                        char *dst = terminal_video_mem + ((NUM_COLS * (row - 1) + col) << 1);
+
+                        // Copy character and attribute from the source row to the destination row
+                        *dst = *src; // Copy character
+                        *(dst + 1) = *(src + 1); // Copy attribute
+                    }
+                }
+
+                // Clear the last line
+                for(col = 0; col < NUM_COLS; col++) {
+                    char *dst = terminal_video_mem + ((NUM_COLS * (NUM_ROWS - 1) + col) << 1);
+                    *dst = ' '; // Set character to space
+                    *(dst + 1) = ATTRIB; // Set attribute
+                }
+
+                screen_y[cursor_idx] = NUM_ROWS - 1; // Move cursor to the beginning of the last line
+            }
+        } else {
+            *(uint8_t *)(terminal_video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1)) = c;
+            *(uint8_t *)(terminal_video_mem + ((NUM_COLS * screen_y[cursor_idx] + screen_x[cursor_idx]) << 1) + 1) = ATTRIB;
+            screen_x[cursor_idx]++;
+            screen_x[cursor_idx] %= NUM_COLS;
+            screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
+
+        }
     }
 }
 

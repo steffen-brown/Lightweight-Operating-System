@@ -1,9 +1,10 @@
 #include "sys_calls.h"
+#include "pit.h"
 
 // The currently active process control block index, initially 0
 int next_process_pid = 4;
 uint8_t base_shell_live_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB)
-uint8_t base_shell_booted_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB)
+uint8_t base_shell_booted_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB) 
 int shell_init_boot = 1;
 
 /*
@@ -132,6 +133,7 @@ FileOperationsTable rtc_operations_table = {
  * Side Effects: Loads a new program into memory, potentially replacing the currently running program.
  */
 int32_t execute(const uint8_t* command_user) {
+    cli();
     uint8_t file_name[32]; // Buffer to store the extracted file name from the command.
     dir_entry_t cur_dentry; // Directory entry structure to hold file metadata.
     uint8_t file_metadata[28]; // Buffer to temporarily hold the file contents. The size 6000 is chosen based on the expected maximum size of an executable.
@@ -297,6 +299,8 @@ int32_t execute(const uint8_t* command_user) {
     register uint32_t saved_ebp asm("ebp");
     current_PCB->EBP = (void*)saved_ebp;
     
+    sti();
+
     asm volatile (
         "iret\n"          // Return from interrupt
     );
@@ -418,6 +422,7 @@ int32_t open(const uint8_t* filename) {
         current_pcb->files[i].operationsTable = rtc_operations_table;
         current_pcb->files[i].filePosition = 0;
         current_pcb->files[i].flags = 1;
+        // current_pcb->files[i].operationsTable.open((uint8_t*)"rtc");
         RETURN(i); // Return FD number
     } else if (file_type == 1) { // Directory file
         current_pcb->files[i].operationsTable = dir_operations_table;
@@ -517,6 +522,18 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
  *  SIDE EFFECTS: changes PDT and Page table for vid map (more of an effect than a side effect)
  */
 int32_t vidmap(uint8_t** screen_start) {
+    ProcessControlBlock* current_pcb;
+    asm volatile (
+        "movl %%esp, %%eax\n"       // Move current ESP value to EAX for manipulation
+        "andl $0xFFFFE000, %%eax\n" // Clear the lower 13 bits to align to 8KB boundary
+        "movl %%eax, %0\n"          // Move the modified EAX value to current_pcb
+        : "=r" (current_pcb)        // Output operands
+        :                            // No input operands
+        : "eax"                      // Clobber list, indicating EAX is modified
+    );
+
+    int cur_thread_local = get_base_thread_pcb(current_pcb)->processID;
+
     // Step 1: Bound checks
     uint32_t vid_addr = (uint32_t)screen_start;
     if (screen_start == NULL) { // invalid screen start
@@ -543,7 +560,11 @@ int32_t vidmap(uint8_t** screen_start) {
     vidmem_pt.p = 1; // present
     vidmem_pt.us = 1; // user
     vidmem_pt.rw = 1;
-    vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
+    if(cur_terminal == cur_thread_local) {
+        vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
+    } else {
+        vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096 + cur_thread_local;
+    }
     pt_vidmap[0] = vidmem_pt.val;
 
     // Step 3: Flush TLB, update screen start and return
