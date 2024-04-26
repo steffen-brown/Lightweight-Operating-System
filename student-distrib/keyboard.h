@@ -32,8 +32,8 @@
 #define F2              0x3C    // F2 scan code
 #define F3              0x3D    // F3 scan code
 
-char keyboard_buffer[NUM_TERMINALS][BUFFER_SIZE];
-extern int cur_terminal;
+char keyboard_buffer[NUM_TERMINALS][BUFFER_SIZE]; // Keyboard buffers for the 3 termnals
+extern int cur_terminal; // Global variable for the current displayed terminal
 
 /* initializes keyboard interrupt on the PIC */
 void keyboard_init(void);

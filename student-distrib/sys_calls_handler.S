@@ -71,5 +71,5 @@ halt_return:
 return_to_parent:
     movl 4(%esp), %ebp /* Restore parent's base pointer */
     movl %ebp, %esp /* Set stack pointer to base pointer, effectively restoring parent's stack frame */
-    popl %ebp
+    popl %ebp /* Restore the previous EBP */
     ret /* Jump to the end of system call handler to restore registers and return */

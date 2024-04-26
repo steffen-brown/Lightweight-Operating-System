@@ -12,8 +12,8 @@
 
 // int screen_x;
 // int screen_y;
-int screen_x[3];
-int screen_y[3];
+int screen_x[3]; 
+int screen_y[3]; // Global arrays for the current cursor locations of the 3 terminals
 static char* video_mem = (char *)VIDEO;
 
 /* void clear(void);

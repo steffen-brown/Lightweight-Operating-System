@@ -249,19 +249,19 @@ void keyboard_handler(void) {
         int selected_terminal = scan_code - 0x01;
 
 
-        // Switch vidmem
+        // Switch vidmem to new terminal
         memcpy(videomem_buffer[cur_terminal - 1], VIDEO_MEM, FOUR_KB);
         memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
 
-        cur_terminal = selected_terminal;
+        cur_terminal = selected_terminal; // Set the current terminal to match the terminal just selected
         
-        // If no terminal exists, boot em up!
+        // If no terminal exists, boot it up!
         if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
             send_eoi(1);
-            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell");
+            CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell"); // Save context of sys call and execuate a new shell in a new thread
         }
     }
 
@@ -277,7 +277,7 @@ void keyboard_handler(void) {
         : "eax"                     // Clobber list, eax is modified
     );
 
-    outb(0x61, 0x20);
+    outb(0x61, 0x20); // Marco to send end EOI for keyboard | 0x61 encoding for EOI | 0x20 PIC i/o port
     sti();
 }
 

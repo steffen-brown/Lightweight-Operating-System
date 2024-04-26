@@ -2,10 +2,10 @@
 #include "pit.h"
 
 // The currently active process control block index, initially 0
-int next_process_pid = 4;
-uint8_t base_shell_live_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB)
-uint8_t base_shell_booted_bitmask = 0x00; // Shell 3 | Shell 2 | Shell 1 (LSB) 
-int shell_init_boot = 1;
+int next_process_pid = 4; // Current process number of non-base shell processes
+uint8_t base_shell_live_bitmask = 0x00; // Representing shells currently open, Shell 3 | Shell 2 | Shell 1 (LSB)
+uint8_t base_shell_booted_bitmask = 0x00; // Representing shells currently booted, Shell 3 | Shell 2 | Shell 1 (LSB) 
+int shell_init_boot = 1; // Global variable used to boot the correct shell
 
 /*
  * Halts a process and handles the termination or switching to another process.
@@ -71,7 +71,7 @@ int32_t halt(uint32_t status) {
     }
     
     uint32_t parent_ebp = (uint32_t)((ProcessControlBlock*)current_pcb->parentPCB)->EBP;// Retrieves the saved Base Pointer (EBP) of the parent process.
-    halt_return(parent_ebp, parent_ebp, return_value);
+    halt_return(parent_ebp, parent_ebp, return_value); // Return to the parent process
 
     return 0; // Never reached
 }
@@ -184,8 +184,9 @@ int32_t execute(const uint8_t* command_user) {
 
     int next_pid;
     uint8_t shell_to_reboot;
-    int base_boot = 0;
+    int base_boot = 0; // If this is the first process in a thread
 
+    // If process getting booted is a shell...
     if(strncmp((int8_t*)file_name, "shell", 5) == 0) {
         if(shell_init_boot != 0) {
             // Initially booting up a shell
@@ -197,7 +198,7 @@ int32_t execute(const uint8_t* command_user) {
 
             shell_init_boot = 0; // Set the initial boot flag to none
         } else if((shell_to_reboot = (base_shell_booted_bitmask ^ base_shell_live_bitmask)) != 0) {
-            // If a base shell is open but not alive
+            // If a base shell is open but not alive (rebooting)
             if(shell_to_reboot == 1) {
                 next_pid = 1;
             } else if(shell_to_reboot == 2) {
@@ -244,6 +245,7 @@ int32_t execute(const uint8_t* command_user) {
     strcpy((int8_t*)new_PCB->name, (int8_t*)file_name);
     new_PCB->parentPCB = base_boot ? 0 : (ProcessControlBlock*)(0x800000 - (current_PCB->processID + 1) * 0x2000); // Update the new PCB parent pointer - new_PCB = 8MB - (parent PID + 1) * 8KB (0x2000)
     new_PCB->childPCB = (ProcessControlBlock*)0;
+    // If this is not the first process, update teh parent PCB to point to the child PCB
     if(!base_boot) {
         current_PCB->childPCB = (ProcessControlBlock*)new_PCB;
     }

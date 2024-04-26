@@ -3,7 +3,7 @@
 #include "i8259.h"
 #include "sys_calls.h"
 
-int cur_thread = 1;
+int cur_thread = 1; // Global variable for the current thread being computed
 
 void pit_init() {
     cli();
@@ -14,13 +14,8 @@ void pit_init() {
     enable_irq(0); // Enable the PIT on the PIC
     sti();
 }
-
-static int pit_virt = 0;
  
 void pit_handler() {
-    pit_virt++;
-
-    if(pit_virt % 1 == 0) {
     ProcessControlBlock* current_PCB;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
@@ -33,9 +28,9 @@ void pit_handler() {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    int saved_thread = cur_thread;
+    int saved_thread = cur_thread; // Save current thread nimber before advancing
 
-    // Advance the thread
+    // Advance the thread in round robin fashion
     cur_thread++;
     if(cur_thread == 4) {
         cur_thread = 1;
@@ -47,11 +42,8 @@ void pit_handler() {
         cur_thread = 1;
     }
 
-    char* vid = (char *)0xB8000;
-    vid[79 * 2] = cur_thread + 48;
-    vid[79 * 2 + 1] = 0x7;
-
     if(saved_thread != cur_thread) {
+        // Get the PCB of the active process on the active thread
         ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (cur_thread + 1) * 0x2000));
 
         // Save current EBP
@@ -70,13 +62,15 @@ void pit_handler() {
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
 
         pt_entry_t vidmem_pt;
-        vidmem_pt.p = 1; // present
-        vidmem_pt.us = 1; // user
-        vidmem_pt.rw = 1;
+        vidmem_pt.p = 1; // present on
+        vidmem_pt.us = 1; // user access enabled
+        vidmem_pt.rw = 1; // read write privlages enabled
+
+        // Update userspace video memory to display to the correct terminal
         if(cur_terminal == cur_thread) {
             vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
         } else {
-            vidmem_pt.address_31_12 = VID_MEM_PHYSICAL + cur_thread; // Should work but doesn't
+            vidmem_pt.address_31_12 = VID_MEM_PHYSICAL + cur_thread;
         }
         pt_vidmap[0] = vidmem_pt.val;
         flush_tlb();
@@ -87,7 +81,6 @@ void pit_handler() {
     }
     
     
-    }
     send_eoi(0); // Send end of interrupt for the PIT to the pic
 }
 

@@ -7,6 +7,7 @@
 
 #include "types.h"
 
+// Variable descriptions located in the C file
 extern int screen_x[3];
 extern int screen_y[3];
 int32_t printf(int8_t *format, ...);

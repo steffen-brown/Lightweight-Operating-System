@@ -68,15 +68,7 @@ void RTC_handler() {
 			rtc_flag[curThread] = 0;
 			
 		}
-	// for (int i = 0; i < 3; i++){ // Loop through all threads
-	rtc_counter[curThread]++; // Increment the counter
-	// }
-	//asically you have three counts right, one for each terminal
-	//on every rtc interrupt, increment all of them
-	//so it's LIKE the interrupt happened for each terminal, not just the scheduled one
-	//therefore when u swap back to one as active terminal, you see the full elapsed tiem
-
-    // rtc_counter[curThread] = rtc_counter[cur_thread]-rtc_freq[curThread]; // Decrement the counter
+	rtc_counter[curThread]++; // Increment the counter for the current thread
 
     outb(0x0C, RTC_cmd); // Unlock the RTC
     inb(RTC_data); // Clear interrupt flag
@@ -97,18 +89,12 @@ int rtc_open(const uint8_t* filename) {
     cli(); // Disable interrupts
 	int curThread = get_current_thread();
     rtc_flag[curThread] = 0; // Reset the RTC interrupt
-	// uint32_t rate = rate_cal(RTC_FREQ); // Calculate rate based on default frequency
-	// rate &= 0x0F; // rate must be above 2 and not over 15
-    
 
     // Set initial rate in register A
     outb(RTC_register_A, RTC_cmd); // Select register A
     char prev = inb(RTC_data); // Read current value of register A
     outb(RTC_register_A, RTC_cmd); // Re-select register A
     outb((prev & 0xF0) | INIT_RATE, RTC_data); // Set rate to initial rate (defined by INIT_RATE)
-
-    // rtc_freq[curThread] = INIT_RATE; // Set the frequency to default
-    // rtc_counter[curThread] = RTC_FREQ; // Set the counter to default frequency
 
     sti(); // Enable interrupts
 
@@ -140,18 +126,12 @@ int rtc_close(int32_t fd) {
 int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
 	cli();
 
-    // if (buf == NULL || nbytes != sizeof(uint32_t)) {
-    //     return -1; // Return error if buffer is NULL or size mismatch
-    // }
-
     uint32_t frequency = *((uint32_t*) buf); // Extract the desired frequency from buffer
     if(!((frequency > 0) && ((frequency & (frequency - 1)) == 0)))
 		return -1; // Invalid frequency
 
     int curThread = get_current_thread(); // Assume function to get current thread index
-	// int rate = rate_cal(frequency); // Calculate rate based on frequency
 
-	// rate &= 0x0F; // rate must be above 2 and not over 15
 	int rate;
 	rate = 1;  // Initialize rate
     int value = 32768; // Max RTC frequency (2^15)
@@ -163,12 +143,7 @@ int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
 	if(rate < 3 || rate > 15) // RTC rate valid range
 		return -1; // Invalid rate
 
-	rtc_freq[curThread] = frequency; // Set the frequency
-    //Set the rate in register A
-    // outb(RTC_register_A, RTC_cmd); // Select register A
-    // char prev = inb(RTC_data); // Read current value of register A
-    // outb(RTC_register_A, RTC_cmd); // Re-select register A
-    // outb((prev & 0xF0) | rate, RTC_data); // Set new rate
+	rtc_freq[curThread] = frequency; // Set the frequency of the thread accordingly
 
     sti(); // Re-enable interrupts
 

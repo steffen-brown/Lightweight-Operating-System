@@ -95,20 +95,10 @@ void setup_kernel_paging() {
 
     pt_entry_t video_memory_page;
 
-    // Setup a Page Table entry for video memory
-    // video_memory_page.p = 1;    // Present; the page is present in memory
-    // video_memory_page.rw = 1;   // Read/Write; the page is writable
-    // video_memory_page.us = 0;   // User/Supervisor; the page is only accessible from supervisor mode
-    // video_memory_page.pwt = 0;  // Page Write-Through; disabled for performance
-    // video_memory_page.pcd = 0;  // Page Cache Disable; caching enabled
-    // video_memory_page.a = 0;    // Accessed; not accessed yet
-    // video_memory_page.d = 0;    // Dirty; not written to yet
-    // video_memory_page.pat = 0;  // Page Attribute Table; not used here
-    // video_memory_page.g = 0;    // Global; not global
-    // video_memory_page.address_31_12 = 0xB8; // Physical address of video memory (0xB8000 >> 12)
     set_pt_entry(&video_memory_page, 0, 0);
     pt0[0xB8] = video_memory_page.val; // Maps virtual address corresponding to 0xB8000 to video memory
 
+    // Create page table entries for the video pages that currently aren't being displayed
     pt_entry_t video_memory_page1;
     set_pt_entry(&video_memory_page1, 0, 1);
     pt0[0xB8 + 1] = video_memory_page1.val;
