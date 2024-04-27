@@ -36,7 +36,7 @@ static int keyboard_index[NUM_TERMINALS]; // global variable for keyboard buffer
 static int shift_flag;
 static int caps_lock_flag;
 static int ctrl_flag;
-static volatile int enter_flag[3];
+static volatile int enter_flag[NUM_TERMINALS];
 static int newline_flag;
 static int alt_flag;
 int cur_terminal;

@@ -13,6 +13,7 @@
 #define NUM_TERMINALS   3       // number of terminals
 #define FOUR_KB         4096    // 4 KB in bytes
 #define VIDEO_MEM       ((uint8_t *)0xB8000) // Base address of video memory
+#define F_OFFSET        0x3A    
 
 #define LEFT_SHIFT      0x2A    // left shift scan code
 #define RIGHT_SHIFT     0x36    // right shift scan code

@@ -13,9 +13,9 @@
 // #define INIT_FREQ 8192
 #define MAX_FREQ 1024
 
-volatile int rtc_flag[3];
-volatile uint32_t rtc_counter[3];
-volatile uint32_t rtc_freq[3]= {340,340,340}; // Default to the initial rate
+volatile int rtc_flag[NUM_TERMINALS];
+volatile uint32_t rtc_counter[NUM_TERMINALS];
+volatile uint32_t rtc_freq[NUM_TERMINALS]= {INIT_RATE_DEFAULT,INIT_RATE_DEFAULT,INIT_RATE_DEFAULT}; // Default to the initial rate
 /*
  * RTC_init
  *   DESCRIPTION: Initializes the Real-Time Clock (RTC) by enabling RTC interrupts. This function
@@ -57,7 +57,7 @@ void RTC_handler() {
 
     int threads_active = 1;
     int i;
-    for(i = 1; i < 3; i++) {
+    for(i = 1; i < NUM_TERMINALS; i++) {
         if((base_shell_booted_bitmask >> i) & 0x1) {
             threads_active++;
         }

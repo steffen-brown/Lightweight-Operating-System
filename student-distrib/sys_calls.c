@@ -63,7 +63,7 @@ int32_t halt(uint32_t status) {
         // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
         // The calculation for esp0 adjusts the stack pointer based on the process ID, ensuring each process has a unique kernel stack in memory.
         // The magic number 0x800000 represents the start of kernel memory, and 0x2000 (8KB) is the size allocated for each process's kernel stack.
-        tss.esp0 = (uint32_t)(0x800000 - (((ProcessControlBlock*)current_pcb->parentPCB)->processID) * 0x2000); // Adjusts ESP0 for the parent process.
+        tss.esp0 = (uint32_t)(BASE_MEM - (((ProcessControlBlock*)current_pcb->parentPCB)->processID) * PCB_MEM); // Adjusts ESP0 for the parent process.
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
         // Restore parent process control block
         next_process_pid--; // Decrement the active process count to reflect the process termination.
@@ -239,11 +239,11 @@ int32_t execute(const uint8_t* command_user) {
     read_data(cur_dentry.inode_num, 0, (uint8_t*)PROGRAM_START, file_length);
 
     // Create PCB at top of new process kernal stack
-    ProcessControlBlock* new_PCB = (void*)(0x800000 - (next_pid + 1) * 0x2000); // Update the new PCB pointer - new_PCB = 8MB - (PID + 1) * 8KB (0x2000)
+    ProcessControlBlock* new_PCB = (void*)(BASE_MEM - (next_pid + 1) * PCB_MEM); // Update the new PCB pointer - new_PCB = 8MB - (PID + 1) * 8KB (0x2000)
     new_PCB->processID = next_pid;
     new_PCB->exitStatus = 0;
     strcpy((int8_t*)new_PCB->name, (int8_t*)file_name);
-    new_PCB->parentPCB = base_boot ? 0 : (ProcessControlBlock*)(0x800000 - (current_PCB->processID + 1) * 0x2000); // Update the new PCB parent pointer - new_PCB = 8MB - (parent PID + 1) * 8KB (0x2000)
+    new_PCB->parentPCB = base_boot ? 0 : (ProcessControlBlock*)(BASE_MEM - (current_PCB->processID + 1) * PCB_MEM); // Update the new PCB parent pointer - new_PCB = 8MB - (parent PID + 1) * 8KB (0x2000)
     new_PCB->childPCB = (ProcessControlBlock*)0;
     // If this is not the first process, update teh parent PCB to point to the child PCB
     if(!base_boot) {
