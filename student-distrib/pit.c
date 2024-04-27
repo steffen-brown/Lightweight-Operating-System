@@ -6,13 +6,12 @@
 int cur_thread = 1; // Global variable for the current thread being computed
 
 void pit_init() {
-    cli();
     int divisor = PIT_FREQ / 100; // Calculate the divisor for the PIT
     outb(0x34, 0x43); // Set the PIT to mode 2, rate generator
     outb(divisor & 0xFF, 0x40); // Set the PIT to 50ms
     outb((divisor >> 8), 0x40); // Set the PIT to 50ms
     enable_irq(0); // Enable the PIT on the PIC
-    sti();
+
 }
  
 void pit_handler() {
@@ -48,7 +47,7 @@ void pit_handler() {
 
         // Save current EBP
         register uint32_t saved_ebp asm("ebp");
-        current_PCB->EBP = (void*)saved_ebp;
+        current_PCB->schedEBP = (void*)saved_ebp;
 
         pdt_entry_page_t new_page;
 
@@ -77,7 +76,7 @@ void pit_handler() {
 
         send_eoi(0);
         // Context switch to prexisiting thread
-        return_to_parent(top_PCB->EBP);
+        return_to_parent(top_PCB->schedEBP);
     }
     
     

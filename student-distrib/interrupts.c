@@ -77,6 +77,9 @@ void exc_handler(int vector) {
             printf("Address: %d\n", read_cr2());
         }
 
+        cli();
+        while(1){}
+
         halt(256); // Halts the system for a critical exception
     }
     // Hardware interrupt handling

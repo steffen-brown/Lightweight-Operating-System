@@ -56,6 +56,7 @@ typedef struct ProcessControlBlock {
     void* childPCB;
     void* parentPCB;
     void* EBP;
+    void* schedEBP;
 } ProcessControlBlock;
 
 extern void halt_return(uint32_t parent_ebp, uint32_t parent_esp, uint32_t ret_val);

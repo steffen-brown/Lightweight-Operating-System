@@ -257,9 +257,12 @@ void keyboard_handler(void) {
         
         // If no terminal exists, boot it up!
         if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
+            register uint32_t saved_ebp asm("ebp");
+            current_PCB->schedEBP = (void*)saved_ebp;
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
+            cur_thread = selected_terminal;
             send_eoi(1);
             CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell"); // Save context of sys call and execuate a new shell in a new thread
         }

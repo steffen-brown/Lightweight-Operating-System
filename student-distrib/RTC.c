@@ -51,7 +51,6 @@ void RTC_init() {
  *                 clear the interrupt request and allow for future RTC interrupts.
  */
 void RTC_handler() {
-    cli(); // Disable interrupts
 
     int curThread = get_current_thread(); // Function to get the current active thread index
 
@@ -74,7 +73,6 @@ void RTC_handler() {
     inb(RTC_data); // Clear interrupt flag
     send_eoi(8); // Send end of interrupt for the RTC to the PIC
 
-    sti(); // Enable interrupts
 }
 
 /*

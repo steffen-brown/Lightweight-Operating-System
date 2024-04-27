@@ -2,10 +2,11 @@
 #include "pit.h"
 
 // The currently active process control block index, initially 0
-int next_process_pid = 4; // Current process number of non-base shell processes
+int aux_processes = 0;
 uint8_t base_shell_live_bitmask = 0x00; // Representing shells currently open, Shell 3 | Shell 2 | Shell 1 (LSB)
 uint8_t base_shell_booted_bitmask = 0x00; // Representing shells currently booted, Shell 3 | Shell 2 | Shell 1 (LSB) 
 int shell_init_boot = 1; // Global variable used to boot the correct shell
+uint8_t active_processes[6];
 
 /*
  * Halts a process and handles the termination or switching to another process.
@@ -14,6 +15,7 @@ int shell_init_boot = 1; // Global variable used to boot the correct shell
  * SIDE EFFECTS: Terminates the current process and may switch to another process.
  */
 int32_t halt(uint32_t status) {
+    cli();
     ProcessControlBlock* current_pcb;
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
@@ -54,11 +56,10 @@ int32_t halt(uint32_t status) {
         pdt_entry_page_t new_page;
         // If the current process ics not the shell, return to the parent process
         // Restore parent paging
-        cli();
+        
         pdt_entry_page_setup(&new_page, ((ProcessControlBlock*)current_pcb->parentPCB)->processID + 1, 1); // Create entry for 0x02 (zero indexed) 4mb page in user mode (1)
         pdt[32] = new_page.val; // Restore paging parent into the 32nd (zero indexed) 4mb virtual memory page
         flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
-        sti();
 
         // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
         // The calculation for esp0 adjusts the stack pointer based on the process ID, ensuring each process has a unique kernel stack in memory.
@@ -66,7 +67,8 @@ int32_t halt(uint32_t status) {
         tss.esp0 = (uint32_t)(BASE_MEM - (((ProcessControlBlock*)current_pcb->parentPCB)->processID) * PCB_MEM); // Adjusts ESP0 for the parent process.
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
         // Restore parent process control block
-        next_process_pid--; // Decrement the active process count to reflect the process termination.
+        active_processes[(int)((int)((ProcessControlBlock*)current_pcb->processID) - 1)] = 0;
+        aux_processes--; // Decrement the active process count to reflect the process termination.
         ((ProcessControlBlock*)current_pcb->parentPCB)->childPCB = 0;
     }
     
@@ -193,6 +195,7 @@ int32_t execute(const uint8_t* command_user) {
             next_pid = shell_init_boot;
             base_boot = 1;
             
+            active_processes[shell_init_boot - 1] = 1;
             base_shell_booted_bitmask |= 1 << (shell_init_boot - 1); // Update the new shell on the booted shell mask
             base_shell_live_bitmask = base_shell_booted_bitmask;
 
@@ -210,15 +213,36 @@ int32_t execute(const uint8_t* command_user) {
             base_boot = 1;
         } else {
             // Secondary shell process is started
-            next_pid = next_process_pid++;
+            int i;
+            for(i = 3; i < 6; i++) {
+                if(active_processes[i] == 0) {
+                    next_pid = i;
+                    active_processes[i] = 1;
+                    break;
+                }
+            }
+
+            next_pid++;
+            aux_processes++;
         }
     } else {
         // Secondary non-shell process has started
-        next_pid = next_process_pid++;
+        // Secondary shell process is started
+        int i;
+        for(i = 3; i < 6; i++) {
+            if(active_processes[i] == 0) {
+                next_pid = i;
+                active_processes[i] = 1;
+                break;
+            }
+        }
+
+        next_pid++;
+        aux_processes++;
     }
     
-    if(next_pid > 6) { // Limit the number of processes running to 6
-        next_process_pid--;
+    if(aux_processes > 3) { // Limit the number of processes running to 6
+        aux_processes--;
         terminal_write(1, "Max number of processes reached!\n", 33);
         RETURN(1);
     }
@@ -304,7 +328,6 @@ int32_t execute(const uint8_t* command_user) {
     register uint32_t saved_ebp asm("ebp");
     current_PCB->EBP = (void*)saved_ebp;
     
-    sti();
 
     asm volatile (
         "iret\n"          // Return from interrupt
@@ -570,12 +593,10 @@ int32_t vidmap(uint8_t** screen_start) {
     } else {
         vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096 + cur_thread_local;
     }
-    cli();
     pt_vidmap[0] = vidmem_pt.val;
 
     // Step 3: Flush TLB, update screen start and return
     flush_tlb(); // Updated tables so flush Translation Lookaside Buffer
-    sti();
     *screen_start = (uint8_t*)VID_MEM; // Update screen start to start of (user-space) video memory
 
     RETURN(0);
