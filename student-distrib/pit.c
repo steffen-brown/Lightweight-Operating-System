@@ -32,19 +32,19 @@ void pit_handler() {
 
     // Advance the thread in round robin fashion
     cur_thread++;
-    if(cur_thread == 4) {
+    if(cur_thread == MAX_THREADS) {
         cur_thread = 1;
     }
-    if(cur_thread == 2 && !(base_shell_booted_bitmask & 0x2)) {
+    if(cur_thread == 2 && !(base_shell_booted_bitmask & 0x2)) { // bitmask logic
         cur_thread++;
     }
-    if(cur_thread == 3 && !(base_shell_booted_bitmask & 0x4)) {
+    if(cur_thread == NUM_TERMINALS && !(base_shell_booted_bitmask & 0x4)) { // bitmask logic
         cur_thread = 1;
     }
 
     if(saved_thread != cur_thread) {
         // Get the PCB of the active process on the active thread
-        ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(0x800000 - (cur_thread + 1) * 0x2000));
+        ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(BASE_MEM - (cur_thread + 1) * PCB_MEM));
 
         // Save current EBP
         register uint32_t saved_ebp asm("ebp");
@@ -58,7 +58,7 @@ void pit_handler() {
         flush_tlb();// Flushes the Translation Lookaside Buffer (TLB)
 
         // Sets the kernel stack pointer for the task state segment (TSS) to the parent's kernel stack.
-        tss.esp0 = (uint32_t)(0x800000 - top_PCB->processID * 0x2000); // Adjusts ESP0 for the parent process.
+        tss.esp0 = (uint32_t)(BASE_MEM - top_PCB->processID * PCB_MEM); // Adjusts ESP0 for the parent process.
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
 
         pt_entry_t vidmem_pt;

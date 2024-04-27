@@ -3,6 +3,9 @@
 #ifndef _RTC_H
 #define _RTC_H
 #define RTC_FREQ 1024
+#define INIT_RATE_DEFAULT 340
+#define NUM_TERMINALS 3
+
 // See c file for desciptions
 extern void RTC_init();
 extern void RTC_handler();
