@@ -44,9 +44,16 @@ void clear(void) {
     cursor_idx = cur_terminal - 1;
     screen_y[cursor_idx] = 0;
     screen_x[cursor_idx] = 0;
+    update_cursor(screen_y[cursor_idx], screen_x[cursor_idx]);
 
-    if(current_pcb->processID == 1) {
-        printf("391OS> ");
+    if(current_pcb->processID == 1 || current_pcb->processID == 2 || current_pcb->processID == 3) {
+        putc('3', 1);
+        putc('9', 1);
+        putc('1', 1);
+        putc('O', 1);
+        putc('S', 1);
+        putc('>', 1);
+        putc(' ', 1);
     }
 }
 
@@ -210,16 +217,16 @@ void putc(uint8_t c, int keyboard_print) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    int cur_thread_local;
+    int cur_process_local;
     if(base_shell_booted_bitmask == 0) {
-        cur_thread_local = 1;
+        cur_process_local = 1;
     } else {
-        cur_thread_local = get_base_thread_pcb(current_PCB)->processID;
+        cur_process_local = get_base_process_pcb(current_PCB)->processID;
     }
 
     // Assembly code to get the current PCB
     // Mask the lower 13 bits then AND with ESP to align it to the 8KB boundary
-    if ( cur_terminal == cur_thread_local || keyboard_print){
+    if ( cur_terminal == cur_process_local || keyboard_print){
 
         // Get index for screen_x/screen_y arrays by getting base thread/terminal number
         int cursor_idx;
@@ -229,6 +236,7 @@ void putc(uint8_t c, int keyboard_print) {
         if(c == '\n' || c == '\r') {
             screen_y[cursor_idx]++;
             screen_x[cursor_idx] = 0;
+            update_cursor(screen_x[cursor_idx], screen_y[cursor_idx]);
 
             int row, col;
             if(screen_y[cursor_idx] >= 25) {
@@ -259,18 +267,20 @@ void putc(uint8_t c, int keyboard_print) {
             screen_x[cursor_idx]++;
             screen_x[cursor_idx] %= NUM_COLS;
             screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
+            update_cursor(screen_x[cursor_idx], screen_y[cursor_idx]);
 
         }
         
     } else { // if printing to a different terminal, don't print to physical video memory
  
-        char* terminal_video_mem = (char *)VIDEO + (FOUR_KB * cur_thread_local);
+        char* terminal_video_mem = (char *)VIDEO + (FOUR_KB * cur_process_local);
         int cursor_idx;
-        cursor_idx = cur_thread_local - 1;
+        cursor_idx = cur_process_local - 1;
 
         if(c == '\n' || c == '\r') {
             screen_y[cursor_idx]++;
             screen_x[cursor_idx] = 0;
+            update_cursor(screen_x[cursor_idx], screen_y[cursor_idx]);
 
             int row, col;
             if(screen_y[cursor_idx] >= 25) {
@@ -301,6 +311,7 @@ void putc(uint8_t c, int keyboard_print) {
             screen_x[cursor_idx]++;
             screen_x[cursor_idx] %= NUM_COLS;
             screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
+            update_cursor(screen_x[cursor_idx], screen_y[cursor_idx]);
 
         }
     }
@@ -599,4 +610,27 @@ void test_interrupts(void) {
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         video_mem[i << 1]++;
     }
+}
+
+/* void update_cursor(int x, int y)
+ * Inputs: x = column position, y = row position
+ * Return Value: void
+ * Function: Updates the cursor position on the screen based on the given x and y coordinates */
+void enable_cursor()
+{
+	outb(0x0A, 0x3D4);
+	outb((inb(0x3D5) & 0xC0) | 14, 0x3D5);
+ 
+	outb(0x0B, 0x3D4);
+	outb((inb(0x3D5) & 0xE0) | 15, 0x3D5);
+}
+
+void update_cursor(int x, int y)
+{
+	uint16_t pos = y * 80 + x;
+ 
+	outb(0x0F, 0x3D4);
+	outb((uint8_t) (pos & 0xFF), 0x3D5);
+	outb(0x0E, 0x3D4);
+	outb((uint8_t) ((pos >> 8) & 0xFF), 0x3D5);
 }

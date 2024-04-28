@@ -231,6 +231,7 @@ void keyboard_handler(void) {
             keyboard_index[cur_terminal - 1]--;
         }
     }
+    update_cursor(screen_x[cursor_idx], screen_y[cursor_idx]);
 
     // Filter out invalid or otherwise unhandled scancodes
     if (scan_code < SCAN_CODES && scan_codes_table[scan_code] && !ctrl_flag && !alt_flag && keyboard_index[cur_terminal - 1] < BUFFER_SIZE - 1) {
@@ -262,7 +263,7 @@ void keyboard_handler(void) {
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;
-            cur_thread = selected_terminal;
+            cur_process = selected_terminal;
             send_eoi(1);
             CONTEXT_SAVE_CALL(execute, (uint8_t*)"shell"); // Save context of sys call and execuate a new shell in a new thread
         }
@@ -299,9 +300,9 @@ int terminal_read(int32_t fd, void* buffer, int32_t bytes) {
         return 0; // If yes, return 0 immediately
     }
 
-    enter_flag[cur_thread - 1] = 0; // Reset enter flag
+    enter_flag[cur_process - 1] = 0; // Reset enter flag
 
-    while(!enter_flag[cur_thread - 1]); // Wait for enter to be pressed
+    while(!enter_flag[cur_process - 1]); // Wait for enter to be pressed
 
     int end_flag = 0; // Flag to indicate the end of reading
 

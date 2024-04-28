@@ -162,7 +162,8 @@ void entry(unsigned long magic, unsigned long addr) {
     keyboard_init();
     RTC_init(); // Initalize and enable the RTC
     pit_init();
-
+    enable_cursor();
+    update_cursor(0,0);
     
     /* Enable interrupts */
     printf("Enabling Interrupts\n");

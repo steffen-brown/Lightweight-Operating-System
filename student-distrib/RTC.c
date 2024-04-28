@@ -52,22 +52,22 @@ void RTC_init() {
  */
 void RTC_handler() {
 
-    int curThread = get_current_thread(); // Function to get the current active thread index
+    int curProcess = get_current_process(); // Function to get the current active thread index
 
-    int threads_active = 1;
+    int processes_active = 1;
     int i;
     for(i = 1; i < NUM_TERMINALS; i++) {
         if((base_shell_booted_bitmask >> i) & 0x1) {
-            threads_active++;
+            processes_active++;
         }
     }
 
-	if((rtc_counter[curThread] % (MAX_FREQ / (rtc_freq[curThread] * threads_active))) == 0) {
+	if((rtc_counter[curProcess] % (MAX_FREQ / (rtc_freq[curProcess] * processes_active))) == 0) {
         // if(rtc_counter[curThread] % 256 == 0) {
-			rtc_flag[curThread] = 0;
+			rtc_flag[curProcess] = 0;
 			
 		}
-	rtc_counter[curThread]++; // Increment the counter for the current thread
+	rtc_counter[curProcess]++; // Increment the counter for the current thread
 
     outb(0x0C, RTC_cmd); // Unlock the RTC
     inb(RTC_data); // Clear interrupt flag
@@ -85,8 +85,8 @@ void RTC_handler() {
  */
 int rtc_open(const uint8_t* filename) {
     cli(); // Disable interrupts
-	int curThread = get_current_thread();
-    rtc_flag[curThread] = 0; // Reset the RTC interrupt
+	int curProcess = get_current_process();
+    rtc_flag[curProcess] = 0; // Reset the RTC interrupt
 
     // Set initial rate in register A
     outb(RTC_register_A, RTC_cmd); // Select register A
@@ -128,7 +128,7 @@ int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
     if(!((frequency > 0) && ((frequency & (frequency - 1)) == 0)))
 		return -1; // Invalid frequency
 
-    int curThread = get_current_thread(); // Assume function to get current thread index
+    int curProcess = get_current_process(); // Assume function to get current thread index
 
 	int rate;
 	rate = 1;  // Initialize rate
@@ -141,7 +141,7 @@ int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
 	if(rate < 3 || rate > 15) // RTC rate valid range
 		return -1; // Invalid rate
 
-	rtc_freq[curThread] = frequency; // Set the frequency of the thread accordingly
+	rtc_freq[curProcess] = frequency; // Set the frequency of the thread accordingly
 
     sti(); // Re-enable interrupts
 
@@ -158,15 +158,15 @@ int rtc_write(int32_t fd, const void* buf, int32_t nbytes) {
  *   SIDE EFFECTS: Blocks until an RTC interrupt occurs.
  */
 int rtc_read(int32_t fd, void* buf, int32_t nbytes) {
-    int curThread = get_current_thread(); // Assume function to get current thread index
+    int curProcess = get_current_process(); // Assume function to get current thread index
 
-    rtc_flag[curThread] = 1; // Set the flag to wait for an interrupt
+    rtc_flag[curProcess] = 1; // Set the flag to wait for an interrupt
 
-    while (rtc_flag[curThread] == 1) {
+    while (rtc_flag[curProcess] == 1) {
         // Wait for the RTC_handler to clear the flag
     }
 
-    rtc_flag[curThread] = 1; // Reset the flag for future reads
+    rtc_flag[curProcess] = 1; // Reset the flag for future reads
 
     return 0; // Success
 }

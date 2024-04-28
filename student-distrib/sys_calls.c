@@ -560,7 +560,7 @@ int32_t vidmap(uint8_t** screen_start) {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    int cur_thread_local = get_base_thread_pcb(current_pcb)->processID;
+    int cur_process_local = get_base_process_pcb(current_pcb)->processID;
 
     // Step 1: Bound checks
     uint32_t vid_addr = (uint32_t)screen_start;
@@ -588,10 +588,10 @@ int32_t vidmap(uint8_t** screen_start) {
     vidmem_pt.p = 1; // present
     vidmem_pt.us = 1; // user
     vidmem_pt.rw = 1;
-    if(cur_terminal == cur_thread_local) {
+    if(cur_terminal == cur_process_local) {
         vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
     } else {
-        vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096 + cur_thread_local;
+        vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096 + cur_process_local;
     }
     pt_vidmap[0] = vidmem_pt.val;
 
@@ -617,7 +617,7 @@ int32_t sigreturn(void) {
 
 // Syscall helpers
 
-ProcessControlBlock* get_top_thread_pcb(ProcessControlBlock* starting_pcb) {
+ProcessControlBlock* get_top_process_pcb(ProcessControlBlock* starting_pcb) {
     while(starting_pcb->childPCB != 0) {
         starting_pcb = starting_pcb->childPCB;
     }
@@ -625,7 +625,7 @@ ProcessControlBlock* get_top_thread_pcb(ProcessControlBlock* starting_pcb) {
     return starting_pcb;
 }
 
-ProcessControlBlock* get_base_thread_pcb(ProcessControlBlock* starting_pcb) {
+ProcessControlBlock* get_base_process_pcb(ProcessControlBlock* starting_pcb) {
     while(starting_pcb->parentPCB != 0) {
         starting_pcb = starting_pcb->parentPCB;
     }

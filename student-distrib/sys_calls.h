@@ -65,8 +65,8 @@ extern void return_to_parent(void* parent_ebp);
 extern uint8_t base_shell_booted_bitmask;
 extern int shell_init_boot;
 
-ProcessControlBlock* get_top_thread_pcb(ProcessControlBlock* starting_pcb);
-ProcessControlBlock* get_base_thread_pcb(ProcessControlBlock* starting_pcb);
+ProcessControlBlock* get_top_process_pcb(ProcessControlBlock* starting_pcb);
+ProcessControlBlock* get_base_process_pcb(ProcessControlBlock* starting_pcb);
 
 #define RETURN(VALUE) \
     asm volatile ( \

@@ -3,7 +3,7 @@
 #include "i8259.h"
 #include "sys_calls.h"
 
-int cur_thread = 1; // Global variable for the current thread being computed
+int cur_process = 1; // Global variable for the current thread being computed
 
 void pit_init() {
     int divisor = PIT_FREQ / 100; // Calculate the divisor for the PIT
@@ -27,23 +27,23 @@ void pit_handler() {
         : "eax"                      // Clobber list, indicating EAX is modified
     );
 
-    int saved_thread = cur_thread; // Save current thread nimber before advancing
+    int saved_process = cur_process; // Save current thread nimber before advancing
 
     // Advance the thread in round robin fashion
-    cur_thread++;
-    if(cur_thread == MAX_THREADS) {
-        cur_thread = 1;
+    cur_process++;
+    if(cur_process == MAX_THREADS) {
+        cur_process = 1;
     }
-    if(cur_thread == 2 && !(base_shell_booted_bitmask & 0x2)) { // bitmask logic
-        cur_thread++;
+    if(cur_process == 2 && !(base_shell_booted_bitmask & 0x2)) { // bitmask logic
+        cur_process++;
     }
-    if(cur_thread == NUM_TERMINALS && !(base_shell_booted_bitmask & 0x4)) { // bitmask logic
-        cur_thread = 1;
+    if(cur_process == NUM_TERMINALS && !(base_shell_booted_bitmask & 0x4)) { // bitmask logic
+        cur_process = 1;
     }
 
-    if(saved_thread != cur_thread) {
+    if(saved_process != cur_process) {
         // Get the PCB of the active process on the active thread
-        ProcessControlBlock* top_PCB = get_top_thread_pcb((ProcessControlBlock*)(BASE_MEM - (cur_thread + 1) * PCB_MEM));
+        ProcessControlBlock* top_PCB = get_top_process_pcb((ProcessControlBlock*)(BASE_MEM - (cur_process + 1) * PCB_MEM));
 
         // Save current EBP
         register uint32_t saved_ebp asm("ebp");
@@ -66,10 +66,10 @@ void pit_handler() {
         vidmem_pt.rw = 1; // read write privlages enabled
 
         // Update userspace video memory to display to the correct terminal
-        if(cur_terminal == cur_thread) {
+        if(cur_terminal == cur_process) {
             vidmem_pt.address_31_12 = VID_MEM_PHYSICAL/4096; // 4096 = 4kB
         } else {
-            vidmem_pt.address_31_12 = VID_MEM_PHYSICAL + cur_thread;
+            vidmem_pt.address_31_12 = VID_MEM_PHYSICAL + cur_process;
         }
         pt_vidmap[0] = vidmem_pt.val;
         flush_tlb();
@@ -83,6 +83,6 @@ void pit_handler() {
     send_eoi(0); // Send end of interrupt for the PIT to the pic
 }
 
-int get_current_thread() {
-    return cur_thread-1;
+int get_current_process() {
+    return cur_process-1;
 }
