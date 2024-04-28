@@ -280,7 +280,6 @@ void putc(uint8_t c, int keyboard_print) {
         if(c == '\n' || c == '\r') {
             screen_y[cursor_idx]++;
             screen_x[cursor_idx] = 0;
-            update_cursor(screen_x[cursor_idx], screen_y[cursor_idx]);
 
             int row, col;
             if(screen_y[cursor_idx] >= 25) {
@@ -311,7 +310,6 @@ void putc(uint8_t c, int keyboard_print) {
             screen_x[cursor_idx]++;
             screen_x[cursor_idx] %= NUM_COLS;
             screen_y[cursor_idx] = (screen_y[cursor_idx] + (screen_x[cursor_idx] / NUM_COLS));
-            update_cursor(screen_x[cursor_idx], screen_y[cursor_idx]);
 
         }
     }

@@ -255,6 +255,7 @@ void keyboard_handler(void) {
         memcpy(VIDEO_MEM, videomem_buffer[selected_terminal - 1], FOUR_KB);
 
         cur_terminal = selected_terminal; // Set the current terminal to match the terminal just selected
+        update_cursor(screen_x[cur_terminal-1], screen_y[cur_terminal-1]);
         
         // If no terminal exists, boot it up!
         if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
