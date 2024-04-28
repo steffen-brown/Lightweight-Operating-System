@@ -1,0 +1,44 @@
+Component: PIT/multi-terminal
+File: keyboard.c
+Bug: Process fails to run when cur_terminal != cur_process:
+    1. Open all 3 terminals, 1->2->3
+    2. Wait for process 3 to be active
+    3. Successfully run ls
+    4. Fail to run ls when processes 1 or 2 are active
+    5. Successfully run ls again with process 3 active
+Correction: Enter flag issues. We needed 3 enter flags (one for each terminal) instead of just 1
+
+Component: terminal switching
+File: keyboard.c
+Bug: Debug exception while going through sys calls
+Correction: Changed buffer size from 128 to 127 because we did not account for null terminating char
+            which took buffer size to 129 if we maxed out buffer
+
+Component: PIT
+File: pit.c
+Bug: Page Fault. Did not set read-write bit for vidmem page table
+Correction: Set read-write bit to 1
+
+Component: scheduling
+File: multiple
+Bug: Unholy behavior
+Correction: Put back cli we had removed since interrupts were messing up critical sections
+
+Component: scheduling
+File: multiple
+Bug: Some breakages when running fish, counter, pingpong in different terminals
+Correction:
+    - Removed extra sti's in code where we should not have reenabled interrupts (example: in execute)
+    - Added another EBP (scheduled EBP) because when halting, executeEBP was being overwritten
+      by scheduledEBP. Use scheduledEBP in PIT Handler
+    - Added array of size 6 to maintain status of each of the available processes (6). Old logic where
+      we subtracted 1 from active processes fails if say process 5 (say counter 2) takes longer than
+      process 6 (say counter 0). Reason: our code would try to put a new process at position 5 after process
+      in position 6 finished (old decrement current pid logic)
+
+Component: RTC Virtualization
+File: rtc.c
+Bug: Divide by zero error when switching terminals due to the initial default RTC frequency being set to 1024 Hz.
+Correction: Altered the initialization rate of rtc_freq to 340 Hz by updating INIT_RATE_DEFAULT to 340. This change prevents the divisor in the calculation (MAX_FREQ / (rtc_freq[curThread] * threads_active)) from becoming zero, thus avoiding the error.
+Status: Resolved in the current release.
+

@@ -246,8 +246,8 @@ void keyboard_handler(void) {
         keyboard_index[cur_terminal - 1]++; // Advance the keyboard buffer index
     }
 
-    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) { 
-        int selected_terminal = scan_code - 0x01;
+    if (alt_flag && (scan_code == F1 || scan_code == F2 || scan_code == F3)) { 
+        int selected_terminal = scan_code - F_OFFSET;
 
 
         // Switch vidmem to new terminal
@@ -259,7 +259,7 @@ void keyboard_handler(void) {
         // If no terminal exists, boot it up!
         if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
             register uint32_t saved_ebp asm("ebp");
-            current_PCB->schedEBP = (void*)saved_ebp;
+            current_PCB->schedEBP = (void*)saved_ebp; // save ebp for scheduling
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;

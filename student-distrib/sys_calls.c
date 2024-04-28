@@ -2,11 +2,11 @@
 #include "pit.h"
 
 // The currently active process control block index, initially 0
-int aux_processes = 0;
+int aux_processes = 0; // Number of non base shell active processes
 uint8_t base_shell_live_bitmask = 0x00; // Representing shells currently open, Shell 3 | Shell 2 | Shell 1 (LSB)
 uint8_t base_shell_booted_bitmask = 0x00; // Representing shells currently booted, Shell 3 | Shell 2 | Shell 1 (LSB) 
 int shell_init_boot = 1; // Global variable used to boot the correct shell
-uint8_t active_processes[6];
+uint8_t active_processes[6]; // Array to store the active processes
 
 /*
  * Halts a process and handles the termination or switching to another process.
@@ -67,7 +67,7 @@ int32_t halt(uint32_t status) {
         tss.esp0 = (uint32_t)(BASE_MEM - (((ProcessControlBlock*)current_pcb->parentPCB)->processID) * PCB_MEM); // Adjusts ESP0 for the parent process.
         tss.ss0 = KERNEL_DS; // Sets the stack segment to the kernel's data segment.
         // Restore parent process control block
-        active_processes[(int)((int)((ProcessControlBlock*)current_pcb->processID) - 1)] = 0;
+        active_processes[(int)((int)((ProcessControlBlock*)current_pcb->processID) - 1)] = 0; // Set the process as inactive
         aux_processes--; // Decrement the active process count to reflect the process termination.
         ((ProcessControlBlock*)current_pcb->parentPCB)->childPCB = 0;
     }
@@ -195,7 +195,7 @@ int32_t execute(const uint8_t* command_user) {
             next_pid = shell_init_boot;
             base_boot = 1;
             
-            active_processes[shell_init_boot - 1] = 1;
+            active_processes[shell_init_boot - 1] = 1; // Set the shell as an active process
             base_shell_booted_bitmask |= 1 << (shell_init_boot - 1); // Update the new shell on the booted shell mask
             base_shell_live_bitmask = base_shell_booted_bitmask;
 
@@ -214,10 +214,10 @@ int32_t execute(const uint8_t* command_user) {
         } else {
             // Secondary shell process is started
             int i;
-            for(i = 3; i < 6; i++) {
+            for(i = 3; i < 6; i++) { // Loop through the active ( non base shell) processes to find an available PID
                 if(active_processes[i] == 0) {
-                    next_pid = i;
-                    active_processes[i] = 1;
+                    next_pid = i; // Set the next PID to the available PID
+                    active_processes[i] = 1; // Set the shell process as active
                     break;
                 }
             }
@@ -229,21 +229,21 @@ int32_t execute(const uint8_t* command_user) {
         // Secondary non-shell process has started
         // Secondary shell process is started
         int i;
-        for(i = 3; i < 6; i++) {
-            if(active_processes[i] == 0) {
-                next_pid = i;
-                active_processes[i] = 1;
+        for(i = 3; i < 6; i++) { // Loop through the active ( non base shell) processes to find an available PID
+            if(active_processes[i] == 0) { // Check if the process is active
+                next_pid = i; // Set the next PID to the available PID
+                active_processes[i] = 1; // Set the non shell process as active
                 break;
             }
         }
 
-        next_pid++;
-        aux_processes++;
+        next_pid++; // Increment the PID
+        aux_processes++; // Increment the number of active ( non base shell) processes
     }
     
-    if(aux_processes > 3) { // Limit the number of processes running to 6
-        aux_processes--;
-        terminal_write(1, "Max number of processes reached!\n", 33);
+    if(aux_processes > 3) { // Limit the number of processes running to 6 ( including 3 base shell)
+        aux_processes--; // Decrement the number of active (non base shell) processes
+        terminal_write(1, "Max number of processes reached!\n", 33); // Write to terminal
         RETURN(1);
     }
 
