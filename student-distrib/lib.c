@@ -612,25 +612,50 @@ void test_interrupts(void) {
     }
 }
 
-/* void update_cursor(int x, int y)
- * Inputs: x = column position, y = row position
- * Return Value: void
- * Function: Updates the cursor position on the screen based on the given x and y coordinates */
-void enable_cursor()
+/**
+ * description: Enables the text-mode cursor on the screen.
+ * 
+ * This function manipulates VGA registers to turn on the cursor display with
+ * predefined cursor scanline settings for visibility.
+ *
+ * inputs: none
+ * return: void
+ * 
+ * side effects: Modifies VGA control registers to enable the cursor display.
+ */
+void enable_cursor(void)
 {
-	outb(0x0A, 0x3D4);
-	outb((inb(0x3D5) & 0xC0) | 14, 0x3D5);
- 
-	outb(0x0B, 0x3D4);
-	outb((inb(0x3D5) & 0xE0) | 15, 0x3D5);
+    // Set the cursor scanline start
+    outb(0x0A, 0x3D4);  // Select Cursor Start Register (Index 0x0A)
+    outb((inb(0x3D5) & 0xC0) | 14, 0x3D5); // Set cursor start scanline to 14, preserve top two bits
+
+    // Set the cursor scanline end
+    outb(0x0B, 0x3D4);  // Select Cursor End Register (Index 0x0B)
+    outb((inb(0x3D5) & 0xE0) | 15, 0x3D5); // Set cursor end scanline to 15, preserve top three bits
 }
 
+/**
+ * description: Updates the cursor position to the specified coordinates.
+ * 
+ * Moves the text-mode cursor to the new location on the screen specified by
+ * the x and y coordinates. The position is calculated based on a standard
+ * width of 80 characters (common for VGA text mode).
+ *
+ * input: x The x-coordinate (column) of the cursor.
+ * input: y The y-coordinate (row) of the cursor.
+ * return: void
+ * 
+ * side effects: Writes to VGA control registers to set the cursor's new position.
+ */
 void update_cursor(int x, int y)
 {
-	uint16_t pos = y * 80 + x;
- 
-	outb(0x0F, 0x3D4);
-	outb((uint8_t) (pos & 0xFF), 0x3D5);
-	outb(0x0E, 0x3D4);
-	outb((uint8_t) ((pos >> 8) & 0xFF), 0x3D5);
+    uint16_t pos = y * 80 + x; // Calculate position index in VGA text mode memory
+
+    // Set the low byte of the cursor position
+    outb(0x0F, 0x3D4);  // Select Low Byte of Cursor Location (Index 0x0F)
+    outb((uint8_t) (pos & 0xFF), 0x3D5); // Send the low 8 bits of the cursor position
+
+    // Set the high byte of the cursor position
+    outb(0x0E, 0x3D4);  // Select High Byte of Cursor Location (Index 0x0E)
+    outb((uint8_t) ((pos >> 8) & 0xFF), 0x3D5); // Send the high 8 bits of the cursor position
 }

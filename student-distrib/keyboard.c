@@ -259,7 +259,7 @@ void keyboard_handler(void) {
         // If no terminal exists, boot it up!
         if(!(base_shell_booted_bitmask & (1 << (selected_terminal - 1)))) { 
             register uint32_t saved_ebp asm("ebp");
-            current_PCB->schedEBP = (void*)saved_ebp;
+            current_PCB->schedEBP = (void*)saved_ebp; // save ebp for scheduling
 
             // set up and switch vid memory
             shell_init_boot = selected_terminal;

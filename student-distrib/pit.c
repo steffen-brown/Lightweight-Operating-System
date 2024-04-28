@@ -47,7 +47,7 @@ void pit_handler() {
 
         // Save current EBP
         register uint32_t saved_ebp asm("ebp");
-        current_PCB->schedEBP = (void*)saved_ebp;
+        current_PCB->schedEBP = (void*)saved_ebp; // Save the current EBP for the current scheduling process
 
         pdt_entry_page_t new_page;
 
@@ -76,7 +76,7 @@ void pit_handler() {
 
         send_eoi(0);
         // Context switch to prexisiting thread
-        return_to_parent(top_PCB->schedEBP);
+        return_to_parent(top_PCB->schedEBP); // Return to the parent process with the saved EBP (scheduling)
     }
     
     
