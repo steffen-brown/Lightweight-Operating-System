@@ -246,8 +246,8 @@ void keyboard_handler(void) {
         keyboard_index[cur_terminal - 1]++; // Advance the keyboard buffer index
     }
 
-    if (ctrl_flag && (scan_code == 0x02 || scan_code == 0x03 || scan_code == 0x04)) { 
-        int selected_terminal = scan_code - 0x01;
+    if (alt_flag && (scan_code == F1 || scan_code == F2 || scan_code == F3)) { 
+        int selected_terminal = scan_code - F_OFFSET;
 
 
         // Switch vidmem to new terminal
