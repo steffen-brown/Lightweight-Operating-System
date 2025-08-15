@@ -9,7 +9,7 @@ The OS directly interfaces with hardware, implementing a custom scheduler, memor
 This project was completed as part of an academic course to gain low-level systems programming experience, working from bootloader to process scheduling.
 
 ## Contribution
-This project was developed as part of an academic course and includes significant contributions by **Steffen Brown**, who implemented:
+This project was developed as part of an team project and includes significant contributions by **Steffen Brown**, who implemented:
 - **Memory Management**: Full implementation of paging (`paging.c`, `paging.h`).
 - **Interrupts**: Complete implementation of PIC programming, IDT/ISR setup, and descriptor tables (`i8259.c/h`, `interrupts.c/h`, `x86_desc.S/h`).
 - **Device Drivers**: Full implementation of the real-time clock (`RTC.c/h`) and programmable interval timer (`pit.c/h`, including OS scheduling integration), plus partial contributions to keyboard and file system drivers.
@@ -71,4 +71,5 @@ On Ubuntu/Debian:
 ```bash
 sudo apt update
 sudo apt install qemu-system-i386 build-essential
+
 
